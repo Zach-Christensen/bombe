@@ -1088,7 +1088,7 @@ export default function App() {
   // Keyboard support
   useEffect(() => {
     const handler = (e) => {
-      if (showHelp || showStats || showResult) return;
+      if (showHelp || showStats || showResult || showCheatSheet) return;
       if (gameOver) return;
 
       // If a guess tile is focused, route keys there
@@ -1148,7 +1148,7 @@ export default function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [guessFocused, gameOver, handleReveal, handleGuess, showHelp, showStats, showResult, focusedTile]);
+  }, [guessFocused, gameOver, handleReveal, handleGuess, showHelp, showStats, showResult, showCheatSheet, focusedTile]);
 
   const dayNum = getDayNumber();
 
@@ -1480,69 +1480,22 @@ export default function App() {
               color: T.secondary, fontSize: 15, fontWeight: 600,
               cursor: "pointer", fontFamily: FONT,
             }}>Give up</button>
-            <button onClick={() => setShowCheatSheet(s => !s)} style={{
-              padding: "14px",
-              background: showCheatSheet ? "#f0f4f8" : "none",
-              border: `1px solid ${showCheatSheet ? T.accent : T.border}`, borderRadius: 4,
-              color: showCheatSheet ? T.accent : T.secondary,
-              fontSize: 12, fontWeight: 700,
-              cursor: "pointer", fontFamily: FONT,
-              letterSpacing: 0.5,
-            }}>ABC</button>
+            <button onClick={() => setShowCheatSheet(true)} style={{
+              padding: "10px 12px",
+              background: "none",
+              border: `1px solid ${T.border}`, borderRadius: 4,
+              color: T.secondary,
+              cursor: "pointer",
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <rect x="2" y="2" width="5" height="5" rx="1"/>
+                <rect x="2" y="10" width="5" height="5" rx="1"/>
+                <rect x="10" y="2" width="5" height="5" rx="1"/>
+                <rect x="10" y="10" width="5" height="5" rx="1"/>
+              </svg>
+            </button>
           </div>
-
-          {/* Inline cheat sheet */}
-          {showCheatSheet && (
-            <div style={{ width: "100%", maxWidth: 360, paddingTop: 8 }}>
-              <div style={{
-                display: "grid", gridTemplateColumns: "repeat(9, 1fr)",
-                gap: 4,
-              }}>
-                {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter, i) => {
-                  const crossed = crossedLetters.has(letter);
-                  return (
-                    <button
-                      key={letter}
-                      onClick={() => setCrossedLetters(prev => {
-                        const next = new Set(prev);
-                        if (next.has(letter)) next.delete(letter);
-                        else next.add(letter);
-                        return next;
-                      })}
-                      style={{
-                        display: "flex", flexDirection: "column",
-                        alignItems: "center", justifyContent: "center",
-                        padding: "4px 0",
-                        borderRadius: 3,
-                        border: `1.5px solid ${crossed ? "#d0d4da" : "#e0e0e0"}`,
-                        background: crossed ? "#f0f0f0" : "#fff",
-                        cursor: "pointer",
-                        opacity: crossed ? 0.35 : 1,
-                        transition: "all 0.15s",
-                      }}
-                    >
-                      <span style={{
-                        fontSize: 13, fontWeight: 700, fontFamily: FONT,
-                        color: crossed ? "#999" : T.text,
-                        textDecoration: crossed ? "line-through" : "none",
-                      }}>{letter}</span>
-                      <span style={{
-                        fontSize: 8, fontWeight: 600, fontFamily: FONT,
-                        color: crossed ? "#c0c4ca" : "#999",
-                      }}>{i + 1}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              <div style={{ textAlign: "center", marginTop: 6 }}>
-                <button onClick={() => setCrossedLetters(new Set())} style={{
-                  background: "none", border: "none",
-                  color: T.secondary, fontSize: 11, cursor: "pointer",
-                  fontFamily: FONT, textDecoration: "underline", padding: 2,
-                }}>Reset</button>
-              </div>
-            </div>
-          )}
         </div>
       )}
 
@@ -1594,6 +1547,87 @@ export default function App() {
 
       {/* Modals */}
       {showHelp && <HowToModal onClose={() => setShowHelp(false)} crossedLetters={crossedLetters} setCrossedLetters={setCrossedLetters} />}
+      {showCheatSheet && (
+        <div style={{
+          position: "fixed", inset: 0, background: T.modalOverlay,
+          display: "flex", alignItems: "center", justifyContent: "center",
+          zIndex: 100,
+        }} onClick={() => setShowCheatSheet(false)}>
+          <div onClick={e => e.stopPropagation()} className="codex-modal-enter" style={{
+            background: T.modalBg,
+            borderRadius: 8,
+            padding: "20px 24px 24px",
+            maxWidth: 380,
+            width: "90%",
+            boxShadow: T.modalShadow,
+            position: "relative",
+          }}>
+            <button onClick={() => setShowCheatSheet(false)} style={{
+              position: "absolute", top: 16, right: 16,
+              background: "none", border: "none",
+              fontSize: 18, color: T.secondary, cursor: "pointer",
+              padding: 4, lineHeight: 1, fontFamily: FONT,
+            }}>{"\u2715"}</button>
+
+            <h3 style={{
+              textAlign: "center", fontSize: 16, fontWeight: 700,
+              color: T.text, margin: "0 0 6px",
+              fontFamily: FONT, textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}>Cheat Sheet</h3>
+            <p style={{ fontSize: 13, color: T.secondary, margin: "0 0 14px", fontFamily: FONT, lineHeight: 1.5, textAlign: "center" }}>
+              Tap to cross out letters you{"\u2019"}ve confirmed are in the grid.
+            </p>
+            <div style={{
+              display: "grid", gridTemplateColumns: "repeat(7, 1fr)",
+              gap: 5, maxWidth: 340, margin: "0 auto 14px",
+            }}>
+              {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter, i) => {
+                const crossed = crossedLetters.has(letter);
+                return (
+                  <button
+                    key={letter}
+                    onClick={() => setCrossedLetters(prev => {
+                      const next = new Set(prev);
+                      if (next.has(letter)) next.delete(letter);
+                      else next.add(letter);
+                      return next;
+                    })}
+                    style={{
+                      display: "flex", flexDirection: "column",
+                      alignItems: "center", justifyContent: "center",
+                      padding: "7px 0",
+                      borderRadius: 4,
+                      border: `1.5px solid ${crossed ? "#d0d4da" : T.border}`,
+                      background: crossed ? "#f0f0f0" : "#fff",
+                      cursor: "pointer",
+                      opacity: crossed ? 0.35 : 1,
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <span style={{
+                      fontSize: 16, fontWeight: 700, fontFamily: FONT,
+                      color: crossed ? T.secondary : T.text,
+                      textDecoration: crossed ? "line-through" : "none",
+                    }}>{letter}</span>
+                    <span style={{
+                      fontSize: 9, fontWeight: 600, fontFamily: FONT,
+                      color: crossed ? "#c0c4ca" : T.secondary,
+                    }}>{i + 1}</span>
+                  </button>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", justifyContent: "center" }}>
+              <button onClick={() => setCrossedLetters(new Set())} style={{
+                background: "none", border: "none",
+                color: T.secondary, fontSize: 12, cursor: "pointer",
+                fontFamily: FONT, textDecoration: "underline", padding: 4,
+              }}>Reset all</button>
+            </div>
+          </div>
+        </div>
+      )}
       {showStats && <StatsModal stats={stats} onClose={() => setShowStats(false)} />}
       {showResult && (
         <ResultModal
