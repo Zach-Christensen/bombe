@@ -790,19 +790,11 @@ export default function App() {
 
   const generateShareText = () => {
     const dayNum = getDayNumber();
-    const grid = [];
-    for (let i = 0; i < 20; i++) {
-      if (revealedPositions[i] !== undefined) {
-        grid.push("\uD83D\uDFE6");
-      } else {
-        grid.push("\u2B1C");
-      }
+    const revealsLeft = MAX_QUERIES - queriesUsed;
+    if (won) {
+      return `I just guessed the Bombe #${dayNum} with ${revealsLeft} reveal${revealsLeft === 1 ? "" : "s"} left!\nplaybombe.com`;
     }
-    const rows = [];
-    for (let i = 0; i < 20; i += 5) {
-      rows.push(grid.slice(i, i + 5).join(""));
-    }
-    return `Bombe #${dayNum} ${won ? queriesUsed + "/" + MAX_QUERIES : "X/" + MAX_QUERIES}\n\n${rows.join("\n")}\nplaybombe.com`;
+    return `Bombe #${dayNum} — I couldn't crack it!\nplaybombe.com`;
   };
 
   const handleShare = async () => {
