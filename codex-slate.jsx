@@ -583,7 +583,7 @@ function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats }
               fontFamily: FONT,
               display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
             }}>
-              {copied === "success" ? "Success!" : copied === "failed" ? "Failed" : "Share"}
+              {copied === "success" ? "Copied!" : copied === "failed" ? "Failed" : "Share"}
               {!copied && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
                 <polyline points="16 6 12 2 8 6"/>
@@ -1028,7 +1028,7 @@ export default function App() {
               color: "#fff", fontSize: 15, fontWeight: 600,
               cursor: "pointer",
               fontFamily: FONT,
-            }}>{copied === "success" ? "Success!" : copied === "failed" ? "Failed" : "Share"}</button>
+            }}>{copied === "success" ? "Copied!" : copied === "failed" ? "Failed" : "Share"}</button>
             <button onClick={() => setShowResult(true)} style={{
               padding: "12px 28px", background: "none",
               border: `1px solid ${T.border}`, borderRadius: 4,
