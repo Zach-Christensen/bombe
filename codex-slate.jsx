@@ -163,7 +163,7 @@ const WORD_LIST = [
   "OAKEN","BUSHY","NERVY","ZONAL","DITSY","ROWDY",
 ];
 
-const MAX_QUERIES = 14;
+const MAX_QUERIES = 10;
 const ALPHABET = [
   "A","B","C","D","E","F","G","H","I","J","K","L","M",
   "N","O","P","Q","R","S","T","U","V","W","XY","Z",
@@ -378,7 +378,7 @@ function HowToModal({ onClose }) {
             If a letter is skipped, it's in the secret word.
           </p>
           <p style={{ margin: "0 0 14px" }}>
-            You have <strong>14 reveals</strong> to deduce all 5 missing letters.
+            You have <strong>10 reveals</strong> to deduce all 5 missing letters.
             Then unscramble them to guess the word.
           </p>
           <p style={{ margin: "0 0 4px", color: T.secondary, fontSize: 13 }}>
