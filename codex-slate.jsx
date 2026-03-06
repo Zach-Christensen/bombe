@@ -1421,17 +1421,29 @@ export default function App() {
                         });
                       }
                     }}
-                    onBeforeInput={(e) => {
-                      const char = (e.data || "").toUpperCase();
-                      if (char.length >= 1 && char[0] >= "A" && char[0] <= "Z") {
-                        e.preventDefault();
-                        const key = char[0];
+                    onChange={(e) => {
+                      // Primary handler for mobile/virtual keyboards (Samsung, Android, etc.)
+                      // onKeyDown handles desktop; it calls preventDefault so onChange won't fire there.
+                      const val = (e.target.value || "").toUpperCase();
+                      const char = val.slice(-1);
+                      if (char >= "A" && char <= "Z" && char !== letter) {
                         setGuessTiles(prev => {
                           const next = [...prev];
-                          next[i] = key;
+                          next[i] = char;
                           const nextIdx = Math.min(i + 1, 4);
                           setFocusedTile(nextIdx);
                           setTimeout(() => tileRefs.current[nextIdx]?.querySelector("input")?.focus(), 0);
+                          return next;
+                        });
+                      } else if (val.length < letter.length) {
+                        // Backspace from mobile keyboard
+                        setGuessTiles(prev => {
+                          const next = [...prev];
+                          let idx = i;
+                          if (next[idx] === "" && idx > 0) idx = idx - 1;
+                          next[idx] = "";
+                          setFocusedTile(idx);
+                          setTimeout(() => tileRefs.current[idx]?.querySelector("input")?.focus(), 0);
                           return next;
                         });
                       }
