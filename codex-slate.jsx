@@ -811,10 +811,10 @@ export default function App() {
       try {
         await navigator.share({ text });
         setCopied("success");
+        setTimeout(() => setCopied(false), 2000);
       } catch {
-        setCopied("failed");
+        // User cancelled share sheet — do nothing
       }
-      setTimeout(() => setCopied(false), 2000);
       return;
     }
     let ok = false;
