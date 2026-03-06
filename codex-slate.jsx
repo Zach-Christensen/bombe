@@ -654,8 +654,9 @@ export default function App() {
 
       *, *::before, *::after { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; }
-      html { height: 100%; background: ${T.bg}; overflow: hidden; }
-      body { height: 100%; background: ${T.bg}; overflow: hidden; }
+      html { height: 100%; background: ${T.bg}; }
+      body { height: 100%; background: ${T.bg}; margin: 0; overflow: hidden; }
+      #root { height: 100%; }
 
       @keyframes codex-modal-slide {
         0% { transform: translateY(-20px); opacity: 0; }
@@ -832,7 +833,7 @@ export default function App() {
 
   return (
     <div style={{
-      minHeight: "100vh",
+      minHeight: "100%",
       background: T.bg,
       color: T.text,
       fontFamily: FONT,
@@ -910,7 +911,7 @@ export default function App() {
 
       {/* Tile grid - 5x4 grid */}
       <div style={{
-        width: "100%", maxWidth: 800, padding: "0 16px",
+        width: "100%", maxWidth: 420, padding: "0 16px",
         display: "grid",
         gridTemplateColumns: "repeat(5, 1fr)",
         gap: 6,
