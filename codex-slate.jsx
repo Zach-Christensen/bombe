@@ -663,7 +663,6 @@ export default function App() {
     const saved = loadDailyState();
     return saved ? saved.won : false;
   });
-  const [showGuessInput, setShowGuessInput] = useState(false);
   const [wrongGuess, setWrongGuess] = useState(false);
   const [showStats, setShowStats] = useState(false);
   const [showHelp, setShowHelp] = useState(() => {
@@ -673,7 +672,7 @@ export default function App() {
   const [showResult, setShowResult] = useState(false);
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState(loadStats);
-  // inputRef removed — guess tiles use tileRefs
+  const hiddenInputRef = useRef(null);
 
   const queriesLeft = MAX_QUERIES - queriesUsed;
 
@@ -723,13 +722,6 @@ export default function App() {
     saveDailyState({ revealedPositions, queriesUsed, gameOver, won });
   }, [revealedPositions, queriesUsed, gameOver, won]);
 
-  // Restore showGuessInput from saved state if game was in guess phase
-  useEffect(() => {
-    if (gameOver) return;
-    if (queriesUsed >= MAX_QUERIES) {
-      setShowGuessInput(true);
-    }
-  }, []);
 
   const handleReveal = useCallback((position) => {
     if (gameOver || revealedPositions[position] !== undefined || queriesUsed >= MAX_QUERIES) return;
@@ -741,7 +733,6 @@ export default function App() {
     setQueriesUsed(newQueries);
 
     if (newQueries >= MAX_QUERIES) {
-      setShowGuessInput(true);
       setFocusedTile(0);
       setTimeout(() => tileRefs.current[0]?.focus(), 100);
     }
@@ -843,28 +834,23 @@ export default function App() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // Track whether a guess tile is focused
+  const [guessFocused, setGuessFocused] = useState(false);
+
   // Keyboard support
   useEffect(() => {
     const handler = (e) => {
       if (showHelp || showStats || showResult) return;
-      if (!showGuessInput && !gameOver) {
-        const key = e.key.toUpperCase();
-        if (key.length === 1 && key >= "A" && key <= "Z") {
-          let alphaIndex;
-          if (key === "X" || key === "Y") alphaIndex = 23;
-          else if (key >= "A" && key <= "W") alphaIndex = key.charCodeAt(0) - 65;
-          else alphaIndex = 24;
-          handleReveal(alphaIndex);
-        }
-      }
-      if (showGuessInput && !gameOver) {
+      if (gameOver) return;
+
+      // If a guess tile is focused, route keys there
+      if (guessFocused) {
         if (e.key === "Enter") { handleGuess(); return; }
         const key = e.key.toUpperCase();
         if (key === "BACKSPACE") {
           e.preventDefault();
           setGuessTiles(prev => {
             const next = [...prev];
-            // If current tile is empty, move back first
             let idx = focusedTile;
             if (next[idx] === "" && idx > 0) idx = idx - 1;
             next[idx] = "";
@@ -901,10 +887,20 @@ export default function App() {
           return;
         }
       }
+
+      // Otherwise, route letter keys to grid reveals
+      const key = e.key.toUpperCase();
+      if (key.length === 1 && key >= "A" && key <= "Z") {
+        let alphaIndex;
+        if (key === "X" || key === "Y") alphaIndex = 23;
+        else if (key >= "A" && key <= "W") alphaIndex = key.charCodeAt(0) - 65;
+        else alphaIndex = 24;
+        handleReveal(alphaIndex);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [showGuessInput, gameOver, handleReveal, handleGuess, showHelp, showStats, showResult, focusedTile]);
+  }, [guessFocused, gameOver, handleReveal, handleGuess, showHelp, showStats, showResult, focusedTile]);
 
   const dayNum = getDayNumber();
 
@@ -1007,19 +1003,60 @@ export default function App() {
         })}
       </div>
 
-      {/* Guess area — 5 draggable tiles */}
-      {showGuessInput && !gameOver && (
+      {/* Guess area — 5 draggable tiles + hidden input for mobile keyboard */}
+      {!gameOver && (
         <div style={{
           width: "100%", maxWidth: 420, padding: "20px 16px 0",
           display: "flex", flexDirection: "column",
           alignItems: "center", gap: 12,
         }}>
-          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+          {/* Hidden input to trigger mobile keyboard */}
+          <input
+            ref={hiddenInputRef}
+            style={{
+              position: "absolute", opacity: 0, width: 1, height: 1,
+              pointerEvents: "none",
+            }}
+            autoComplete="off"
+            autoCorrect="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            inputMode="text"
+            onKeyDown={(e) => {
+              const key = e.key.toUpperCase();
+              if (key === "BACKSPACE") {
+                e.preventDefault();
+                setGuessTiles(prev => {
+                  const next = [...prev];
+                  let idx = focusedTile;
+                  if (next[idx] === "" && idx > 0) idx = idx - 1;
+                  next[idx] = "";
+                  setFocusedTile(idx);
+                  return next;
+                });
+              } else if (key === "ENTER") {
+                handleGuess();
+              } else if (key.length === 1 && key >= "A" && key <= "Z") {
+                e.preventDefault();
+                setGuessTiles(prev => {
+                  const next = [...prev];
+                  next[focusedTile] = key;
+                  const nextIdx = Math.min(focusedTile + 1, 4);
+                  setFocusedTile(nextIdx);
+                  return next;
+                });
+              }
+              // Clear the hidden input value so it keeps working
+              setTimeout(() => { if (hiddenInputRef.current) hiddenInputRef.current.value = ""; }, 0);
+            }}
+            onFocus={() => setGuessFocused(true)}
+            onBlur={() => setGuessFocused(false)}
+          />
+          <div style={{ display: "flex", gap: 6, justifyContent: "center", position: "relative" }}>
             {guessTiles.map((letter, i) => (
               <div
                 key={i}
                 ref={el => tileRefs.current[i] = el}
-                tabIndex={0}
                 draggable={!!letter}
                 onDragStart={() => setDragIdx(i)}
                 onDragOver={e => e.preventDefault()}
@@ -1060,9 +1097,9 @@ export default function App() {
                 onTouchEnd={() => setDragIdx(null)}
                 onClick={() => {
                   setFocusedTile(i);
-                  tileRefs.current[i]?.focus();
+                  setGuessFocused(true);
+                  hiddenInputRef.current?.focus();
                 }}
-                onFocus={() => setFocusedTile(i)}
                 data-guess-idx={i}
                 style={{
                   width: 56, height: 56,
@@ -1070,7 +1107,7 @@ export default function App() {
                   fontSize: 24, fontWeight: 700, fontFamily: FONT,
                   color: letter ? T.text : T.secondary,
                   background: wrongGuess ? T.errorBg : (dragIdx === i ? "#e8eaed" : T.bg),
-                  border: focusedTile === i
+                  border: (guessFocused && focusedTile === i)
                     ? `2px solid ${wrongGuess ? T.error : T.accent}`
                     : `2px solid ${wrongGuess ? T.error : T.border}`,
                   borderRadius: 4,
@@ -1110,33 +1147,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Pre-guess actions */}
-      {!showGuessInput && !gameOver && queriesUsed > 0 && (
-        <div style={{
-          width: "100%", maxWidth: 800, padding: "8px 16px 0",
-          display: "flex", gap: 8,
-        }}>
-          <button
-            onClick={() => {
-              setShowGuessInput(true);
-              setFocusedTile(0);
-              setTimeout(() => tileRefs.current[0]?.focus(), 100);
-            }}
-            style={{
-              flex: 1, padding: "14px",
-              background: "none",
-              border: `1px solid ${T.border}`,
-              borderRadius: 4,
-              color: T.secondary,
-              fontSize: 15, fontWeight: 600,
-              cursor: "pointer", transition: "all 0.2s",
-              fontFamily: FONT,
-            }}
-          >
-            Guess
-          </button>
-        </div>
-      )}
 
       {/* Game over but result closed */}
       {gameOver && !showResult && (
