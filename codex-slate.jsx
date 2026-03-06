@@ -654,8 +654,8 @@ export default function App() {
 
       *, *::before, *::after { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; }
-      html { height: 100%; background: ${T.bg}; }
-      body { min-height: 100%; background: ${T.bg}; }
+      html { height: 100%; background: ${T.bg}; overflow: hidden; }
+      body { height: 100%; background: ${T.bg}; overflow: hidden; }
 
       @keyframes codex-modal-slide {
         0% { transform: translateY(-20px); opacity: 0; }
@@ -730,8 +730,18 @@ export default function App() {
       setTimeout(() => setShowResult(true), 600);
     } else {
       setWrongGuess(true);
-      setTimeout(() => setWrongGuess(false), 800);
-      setGuess("");
+      setTimeout(() => {
+        setWrongGuess(false);
+        setGameOver(true);
+        setWon(false);
+        const newStats = { ...stats };
+        newStats.played += 1;
+        newStats.streak = 0;
+        newStats.lastDate = new Date().toDateString();
+        setStats(newStats);
+        saveStats(newStats);
+        setTimeout(() => setShowResult(true), 300);
+      }, 800);
     }
   }, [guess, secretWord, stats]);
 
