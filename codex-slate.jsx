@@ -192,17 +192,23 @@ const T = {
   tileHoverBg: "#ededed",
 };
 
-// --- Daily word helpers ---
+// --- Daily word helpers (all UTC so everyone gets the same word) ---
+function getUTCDateString() {
+  const now = new Date();
+  return `${now.getUTCFullYear()}-${now.getUTCMonth() + 1}-${now.getUTCDate()}`;
+}
+
 function getDailyWord() {
   const now = new Date();
-  const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
+  const seed = now.getUTCFullYear() * 10000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
   return WORD_LIST[(seed * 7 + 3) % WORD_LIST.length];
 }
 
 function getDayNumber() {
-  const start = new Date(2026, 2, 6); // March 6 2026
   const now = new Date();
-  return Math.floor((now - start) / 86400000) + 1;
+  const start = Date.UTC(2026, 2, 6); // March 6 2026 UTC
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Math.floor((today - start) / 86400000) + 1;
 }
 
 // --- Stats helpers (localStorage for persistence across refreshes) ---
@@ -225,7 +231,7 @@ function loadDailyState() {
     const raw = localStorage.getItem("bombe_daily");
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.date === new Date().toDateString()) return parsed;
+      if (parsed && parsed.date === getUTCDateString()) return parsed;
     }
   } catch {}
   return null;
@@ -233,7 +239,7 @@ function loadDailyState() {
 
 function saveDailyState(state) {
   try {
-    localStorage.setItem("bombe_daily", JSON.stringify({ ...state, date: new Date().toDateString() }));
+    localStorage.setItem("bombe_daily", JSON.stringify({ ...state, date: getUTCDateString() }));
   } catch {}
 }
 
@@ -302,9 +308,7 @@ function StatsModal({ stats, onClose }) {
   useEffect(() => {
     const tick = () => {
       const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
+      const tomorrow = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
       const diff = tomorrow - now;
       const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
       const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
@@ -489,9 +493,7 @@ function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats }
   useEffect(() => {
     const tick = () => {
       const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
+      const tomorrow = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
       const diff = tomorrow - now;
       const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
       const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
@@ -728,7 +730,7 @@ export default function App() {
       newStats.streak += 1;
       newStats.maxStreak = Math.max(newStats.streak, newStats.maxStreak);
       newStats.revealCounts = [...(newStats.revealCounts || []), queriesUsed];
-      newStats.lastDate = new Date().toDateString();
+      newStats.lastDate = getUTCDateString();
       setStats(newStats);
       saveStats(newStats);
       setTimeout(() => setShowResult(true), 600);
@@ -741,7 +743,7 @@ export default function App() {
         const newStats = { ...stats };
         newStats.played += 1;
         newStats.streak = 0;
-        newStats.lastDate = new Date().toDateString();
+        newStats.lastDate = getUTCDateString();
         setStats(newStats);
         saveStats(newStats);
         setTimeout(() => setShowResult(true), 300);
@@ -755,7 +757,7 @@ export default function App() {
     const newStats = { ...stats };
     newStats.played += 1;
     newStats.streak = 0;
-    newStats.lastDate = new Date().toDateString();
+    newStats.lastDate = getUTCDateString();
     setStats(newStats);
     saveStats(newStats);
     setTimeout(() => setShowResult(true), 300);
