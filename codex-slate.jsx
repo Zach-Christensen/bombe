@@ -1166,11 +1166,13 @@ export default function App() {
                     background: wrongGuess ? T.errorBg
                       : isDropTarget ? "#dbeafe"
                       : isDragging ? "#f0f0f0"
-                      : T.bg,
+                      : letter ? T.bg
+                      : "#f7f8fa",
                     border: isDropTarget ? `2px dashed ${T.accent}`
                       : (guessFocused && focusedTile === i && !isDragging)
                         ? `2px solid ${wrongGuess ? T.error : T.accent}`
-                        : `2px solid ${wrongGuess ? T.error : T.border}`,
+                        : letter ? `2px solid ${wrongGuess ? T.error : T.border}`
+                        : `2px dashed ${wrongGuess ? T.error : "#c0c4ca"}`,
                     borderRadius: 4,
                     cursor: letter ? "grab" : "text",
                     outline: "none",
