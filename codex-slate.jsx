@@ -649,7 +649,11 @@ export default function App() {
   const [guessTiles, setGuessTiles] = useState(["", "", "", "", ""]);
   const [focusedTile, setFocusedTile] = useState(0);
   const [dragIdx, setDragIdx] = useState(null);
+  const [dragPos, setDragPos] = useState(null); // {x, y} screen coords of floating tile
+  const [dropTarget, setDropTarget] = useState(null); // index being hovered over
+  const dragOffsetRef = useRef({ x: 0, y: 0 }); // offset from tile center to touch point
   const tileRefs = useRef([]);
+  const guessRowRef = useRef(null);
   const guess = guessTiles.join("");
   const setGuess = (val) => {
     const arr = val.split("").concat(["","","","",""]).slice(0, 5);
@@ -1069,77 +1073,127 @@ export default function App() {
             onFocus={() => setGuessFocused(true)}
             onBlur={() => setGuessFocused(false)}
           />
-          <div style={{ display: "flex", gap: 6, justifyContent: "center", position: "relative" }}>
-            {guessTiles.map((letter, i) => (
-              <div
-                key={i}
-                ref={el => tileRefs.current[i] = el}
-                draggable={!!letter}
-                onDragStart={() => setDragIdx(i)}
-                onDragOver={e => e.preventDefault()}
-                onDrop={() => {
-                  if (dragIdx === null || dragIdx === i) return;
-                  setGuessTiles(prev => {
-                    const next = [...prev];
-                    const tmp = next[dragIdx];
-                    next[dragIdx] = next[i];
-                    next[i] = tmp;
-                    return next;
-                  });
-                  setDragIdx(null);
-                }}
-                onDragEnd={() => setDragIdx(null)}
-                onTouchStart={(e) => {
-                  if (!letter) return;
-                  setDragIdx(i);
-                }}
-                onTouchMove={(e) => {
-                  if (dragIdx === null) return;
-                  const touch = e.touches[0];
-                  const el = document.elementFromPoint(touch.clientX, touch.clientY);
-                  if (el && el.dataset && el.dataset.guessIdx !== undefined) {
-                    const targetIdx = +el.dataset.guessIdx;
-                    if (targetIdx !== dragIdx) {
+          <div ref={guessRowRef} style={{ display: "flex", gap: 6, justifyContent: "center", position: "relative" }}>
+            {guessTiles.map((letter, i) => {
+              const isDragging = dragIdx === i && dragPos;
+              const isDropTarget = dropTarget === i && dragIdx !== null && dragIdx !== i;
+              return (
+                <div
+                  key={i}
+                  ref={el => tileRefs.current[i] = el}
+                  data-guess-idx={i}
+                  onPointerDown={(e) => {
+                    if (!letter) {
+                      // Empty tile — just focus for typing
+                      setFocusedTile(i);
+                      setGuessFocused(true);
+                      hiddenInputRef.current?.focus();
+                      return;
+                    }
+                    // Start drag
+                    e.preventDefault();
+                    const rect = tileRefs.current[i].getBoundingClientRect();
+                    dragOffsetRef.current = {
+                      x: e.clientX - rect.left - rect.width / 2,
+                      y: e.clientY - rect.top - rect.height / 2,
+                    };
+                    setDragIdx(i);
+                    setDragPos({ x: e.clientX, y: e.clientY });
+                    setDropTarget(null);
+                    tileRefs.current[i].setPointerCapture(e.pointerId);
+                  }}
+                  onPointerMove={(e) => {
+                    if (dragIdx === null || dragIdx !== i) return;
+                    setDragPos({ x: e.clientX, y: e.clientY });
+                    // Find which tile we're over
+                    const row = guessRowRef.current;
+                    if (!row) return;
+                    let found = null;
+                    for (let j = 0; j < 5; j++) {
+                      const el = tileRefs.current[j];
+                      if (!el) continue;
+                      const r = el.getBoundingClientRect();
+                      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+                        found = j;
+                        break;
+                      }
+                    }
+                    setDropTarget(found);
+                  }}
+                  onPointerUp={(e) => {
+                    if (dragIdx === null) return;
+                    // Perform swap if over a different tile
+                    if (dropTarget !== null && dropTarget !== dragIdx) {
                       setGuessTiles(prev => {
                         const next = [...prev];
                         const tmp = next[dragIdx];
-                        next[dragIdx] = next[targetIdx];
-                        next[targetIdx] = tmp;
+                        next[dragIdx] = next[dropTarget];
+                        next[dropTarget] = tmp;
                         return next;
                       });
-                      setDragIdx(targetIdx);
+                    } else if (dropTarget === null && dragIdx === i) {
+                      // Tap (no real drag) — focus for typing
+                      setFocusedTile(i);
+                      setGuessFocused(true);
+                      hiddenInputRef.current?.focus();
                     }
-                  }
-                }}
-                onTouchEnd={() => setDragIdx(null)}
-                onClick={() => {
-                  setFocusedTile(i);
-                  setGuessFocused(true);
-                  hiddenInputRef.current?.focus();
-                }}
-                data-guess-idx={i}
-                style={{
-                  width: 56, height: 56,
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontSize: 24, fontWeight: 700, fontFamily: FONT,
-                  color: letter ? T.text : T.secondary,
-                  background: wrongGuess ? T.errorBg : (dragIdx === i ? "#e8eaed" : T.bg),
-                  border: (guessFocused && focusedTile === i)
-                    ? `2px solid ${wrongGuess ? T.error : T.accent}`
-                    : `2px solid ${wrongGuess ? T.error : T.border}`,
-                  borderRadius: 4,
-                  cursor: letter ? "grab" : "text",
-                  outline: "none",
-                  transition: "border-color 0.15s, background 0.15s",
-                  userSelect: "none",
-                  WebkitUserSelect: "none",
-                  touchAction: "none",
-                  opacity: dragIdx === i ? 0.5 : 1,
-                }}
-              >
-                {letter || ""}
+                    setDragIdx(null);
+                    setDragPos(null);
+                    setDropTarget(null);
+                  }}
+                  onPointerCancel={() => {
+                    setDragIdx(null);
+                    setDragPos(null);
+                    setDropTarget(null);
+                  }}
+                  style={{
+                    width: 56, height: 56,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontSize: 24, fontWeight: 700, fontFamily: FONT,
+                    color: isDragging ? "transparent" : (letter ? T.text : T.secondary),
+                    background: wrongGuess ? T.errorBg
+                      : isDropTarget ? "#dbeafe"
+                      : isDragging ? "#f0f0f0"
+                      : T.bg,
+                    border: isDropTarget ? `2px dashed ${T.accent}`
+                      : (guessFocused && focusedTile === i && !isDragging)
+                        ? `2px solid ${wrongGuess ? T.error : T.accent}`
+                        : `2px solid ${wrongGuess ? T.error : T.border}`,
+                    borderRadius: 4,
+                    cursor: letter ? "grab" : "text",
+                    outline: "none",
+                    transition: isDragging ? "none" : "border-color 0.15s, background 0.15s",
+                    userSelect: "none",
+                    WebkitUserSelect: "none",
+                    touchAction: "none",
+                  }}
+                >
+                  {isDragging ? "" : (letter || "")}
+                </div>
+              );
+            })}
+
+            {/* Floating drag tile */}
+            {dragIdx !== null && dragPos && guessTiles[dragIdx] && (
+              <div style={{
+                position: "fixed",
+                left: dragPos.x - 28,
+                top: dragPos.y - 40,
+                width: 56, height: 56,
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontSize: 24, fontWeight: 700, fontFamily: FONT,
+                color: T.text,
+                background: T.bg,
+                border: `2px solid ${T.accent}`,
+                borderRadius: 4,
+                boxShadow: "0 8px 24px rgba(0,0,0,0.18)",
+                pointerEvents: "none",
+                zIndex: 9999,
+                transform: "scale(1.1)",
+              }}>
+                {guessTiles[dragIdx]}
               </div>
-            ))}
+            )}
           </div>
           <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 310 }}>
             <button onClick={handleGuess} style={{
