@@ -163,7 +163,7 @@ const WORD_LIST = [
   "OAKEN","BUSHY","NERVY","ZONAL","DITSY","ROWDY",
 ];
 
-const MAX_QUERIES = 10;
+const MAX_QUERIES = 14;
 const ALPHABET = [
   "A","B","C","D","E","F","G","H","I","J","K","L","M",
   "N","O","P","Q","R","S","T","U","V","W","XY","Z",
@@ -212,7 +212,7 @@ function getEasternDateString() {
 function getDailyWord() {
   const { year, month, day } = getEasternDate();
   const seed = year * 10000 + month * 100 + day;
-  return WORD_LIST[(seed * 7 + 3) % WORD_LIST.length];
+  return WORD_LIST[(seed * 13 + 7) % WORD_LIST.length];
 }
 
 function getDayNumber() {
@@ -443,7 +443,7 @@ function HowToModal({ onClose }) {
         }}>How to Play</h3>
 
         <p style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.4, color: T.text, margin: "0 0 4px", fontFamily: FONT }}>
-          Find the hidden word in 10 reveals.
+          Find the hidden word in 14 reveals.
         </p>
         <p style={{ fontSize: 14, lineHeight: 1.6, color: T.secondary, margin: "0", fontFamily: FONT }}>
           The secret word's 5 letters are removed from the alphabet. The remaining letters fill the grid, shifting left to close the gaps.
@@ -480,7 +480,7 @@ function HowToModal({ onClose }) {
         <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
 
         <p style={{ fontSize: 14, color: T.text, margin: "0 0 12px", fontFamily: FONT, lineHeight: 1.5 }}>
-          You have <strong>10 reveals</strong> to deduce all 5 missing letters, then unscramble them to guess the word.
+          You have <strong>14 reveals</strong> to deduce all 5 missing letters, then unscramble them to guess the word.
         </p>
         <p style={{ fontSize: 13, color: T.secondary, margin: "0 0 8px", fontFamily: FONT, lineHeight: 1.5, fontStyle: "italic" }}>
           <strong style={{ color: T.text, fontStyle: "normal" }}>XY</strong> share a single tile in the grid.
