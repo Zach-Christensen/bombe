@@ -480,11 +480,16 @@ function HowToModal({ onClose }) {
         <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
 
         <p style={{ fontSize: 14, color: T.text, margin: "0 0 12px", fontFamily: FONT, lineHeight: 1.5 }}>
-          You have <strong>14 reveals</strong> to deduce all 5 missing letters, then unscramble them to guess the word.
+          You have <strong>14 reveals</strong> to deduce all 5 missing letters, then type them into tiles and drag to rearrange.
         </p>
-        <p style={{ fontSize: 13, color: T.secondary, margin: "0 0 8px", fontFamily: FONT, lineHeight: 1.5, fontStyle: "italic" }}>
-          <strong style={{ color: T.text, fontStyle: "normal" }}>XY</strong> share a single tile in the grid.
+
+        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
+
+        <p style={{ fontSize: 14, color: T.text, margin: "0 0 8px", fontFamily: FONT, lineHeight: 1.5 }}>
+          The alphabet has 26 letters but the grid only has <strong>25 tiles</strong>. That's because <strong>X</strong> and <strong>Y</strong> are combined into one <strong>"XY"</strong> tile. If the secret word contains X or Y, that tile will be missing from the grid just like any other letter.
         </p>
+
+        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
 
         <p style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0", fontFamily: FONT }}>
           A new BOMBE will be available each day!
