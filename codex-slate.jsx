@@ -398,10 +398,10 @@ function StatsModal({ stats, onClose }) {
 }
 
 // --- How To Modal (interactive walkthrough + cheat sheet) ---
-function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
+function HowToModal({ onClose, onPractice, crossedLetters, setCrossedLetters }) {
   const [tab, setTab] = useState("tutorial");
   const [step, setStep] = useState(0);
-  const TOTAL_STEPS = 5;
+  const TOTAL_STEPS = 6;
 
   // Demo grid for BADGE (missing A, B, D, E, G)
   // Remaining: C(3) F(6) H(8) I(9) J(10) K(11) L(12) M(13) N(14) O(15) P(16) Q(17) R(18) S(19) T(20) U(21) V(22) W(23) XY(24-25) Z(26)
@@ -409,14 +409,16 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
 
   // Revealed positions (0-indexed) per step — cascading deduction from tile 1
   const revealedByStep = [
-    [],              // step 0: all blank
-    [0],             // step 1: tile 1 → C
-    [0, 1],          // step 2: + tile 2 → F
-    [0, 1, 2],       // step 3: + tile 3 → H
-    [0, 1, 2],       // step 4: guess
+    [],              // step 0: intro
+    [],              // step 1: all blank
+    [0],             // step 2: tile 1 → C
+    [0, 1],          // step 3: + tile 2 → F
+    [0, 1, 2],       // step 4: + tile 3 → H
+    [0, 1, 2],       // step 5: guess
   ];
-  const newByStep = [[], [0], [1], [2], []];
+  const newByStep = [[], [], [0], [1], [2], []];
   const foundByStep = [
+    [],
     [],
     ["A", "B"],
     ["A", "B", "D", "E"],
@@ -524,17 +526,24 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
     <p style={{ fontSize: 14, color: secondary ? T.secondary : T.text, margin: "0 0 6px", fontFamily: FONT, lineHeight: 1.5 }}>{children}</p>
   );
 
-  const stepTitles = ["The Grid", "Reveal #1", "Reveal #2", "Reveal #3", "Solve It!"];
+  const stepTitles = ["What is Bombe?", "The Grid", "Reveal #1", "Reveal #2", "Reveal #3", "Solve It!"];
 
   const stepContent = [
-    // Step 0: The Grid
+    // Step 0: What is Bombe?
+    <>
+      <p style={{ textAlign: "center", fontSize: 28, fontWeight: 700, color: T.text, margin: "0 0 14px", fontFamily: FONT, letterSpacing: 3 }}>B O M B E</p>
+      <P>A daily word puzzle. <strong>5 letters have been removed</strong> from the alphabet {"\u2014"} figure out which ones, then unscramble them into a word.</P>
+      <P>You get <strong>14 reveals</strong> to flip tiles and deduce the missing letters. One guess. One chance.</P>
+      <P secondary>A new puzzle drops every day at midnight ET.</P>
+    </>,
+    // Step 1: The Grid
     <>
       <MiniGrid />
       <P>The alphabet (A{"\u2013"}Z) fills a 4{"\u00D7"}5 grid, but <strong>5 letters have been removed</strong>. The remaining 20 shift left to close the gaps.</P>
       <P>Each tile shows its <strong>position number</strong>. Reveal tiles to see which letter is at that position {"\u2014"} then deduce which letters are missing.</P>
       <P secondary>Those 5 missing letters unscramble into the secret word. Use the <strong>Cheat Sheet</strong> tab to track letters during gameplay.</P>
     </>,
-    // Step 1: Tile 1 → C (found A, B)
+    // Step 2: Tile 1 → C (found A, B)
     <>
       <MiniGrid />
       <AlphaStrip />
@@ -543,7 +552,7 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
       <P>If no letters were missing, tile 1 would show <strong>A</strong>. Instead it shows <strong>C</strong> {"\u2014"} the 3rd letter of the alphabet at position 1.</P>
       <P>Two letters were skipped. The only letters before C are A and B {"\u2014"} <strong style={{ color: "#2e7d32" }}>both must be missing</strong>!</P>
     </>,
-    // Step 2: Tile 2 → F (found D, E)
+    // Step 3: Tile 2 → F (found D, E)
     <>
       <MiniGrid />
       <AlphaStrip />
@@ -552,7 +561,7 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
       <P>We just confirmed C is at tile 1. So tile 2 should show <strong>D</strong> (the next letter after C). Instead it shows <strong>F</strong>!</P>
       <P>D and E were both skipped {"\u2014"} <strong style={{ color: "#2e7d32" }}>D and E are missing</strong>!</P>
     </>,
-    // Step 3: Tile 3 → H (found G)
+    // Step 4: Tile 3 → H (found G)
     <>
       <MiniGrid />
       <AlphaStrip />
@@ -561,7 +570,7 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
       <P>F is at tile 2, so tile 3 should show <strong>G</strong>. Instead it shows <strong>H</strong> {"\u2014"} G was skipped!</P>
       <P><strong style={{ color: "#2e7d32" }}>G is missing</strong>! That{"\u2019"}s all 5 letters found in just <strong>3 reveals</strong>.</P>
     </>,
-    // Step 4: Solve
+    // Step 5: Solve
     <>
       <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "0 auto 14px" }}>
         {["A", "E", "G", "D", "B"].map((l, i) => <GuessTile key={i} letter={l} />)}
@@ -723,8 +732,21 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
             {step === TOTAL_STEPS - 1 && (
               <>
                 <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0 12px" }} />
+                {onPractice && (
+                  <button
+                    onClick={() => { onClose(); onPractice(); }}
+                    style={{
+                      width: "100%", padding: "12px",
+                      background: "none",
+                      border: `1px solid ${T.border}`, borderRadius: 4,
+                      color: T.secondary, fontSize: 14, fontWeight: 600,
+                      cursor: "pointer", fontFamily: FONT,
+                      marginBottom: 8,
+                    }}
+                  >Try a practice round</button>
+                )}
                 <p style={{ fontSize: 12, color: T.secondary, margin: 0, fontFamily: FONT, lineHeight: 1.5, textAlign: "center" }}>
-                  You have <strong>14 reveals</strong> to find all 5 letters. A new puzzle drops daily!
+                  Not sure yet? Practice with random words, or jump into today{"\u2019"}s puzzle!
                 </p>
               </>
             )}
@@ -738,7 +760,7 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
 }
 
 // --- Result Modal ---
-function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats }) {
+function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats, mode, onPractice, onDaily }) {
   const [countdown, setCountdown] = useState("");
   useEffect(() => {
     const tick = () => {
@@ -797,7 +819,7 @@ function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats }
           </p>
         )}
 
-        {stats && (
+        {mode === "daily" && stats && (
           <div style={{ display: "flex", justifyContent: "center", gap: 32, margin: "0 0 16px" }}>
             <div style={{ textAlign: "center" }}>
               <div style={{ fontSize: 36, fontWeight: 400, color: T.text, fontFamily: FONT }}>{stats.streak}</div>
@@ -816,35 +838,64 @@ function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats }
 
         <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
 
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
-              Next Bombe
+        {mode === "daily" ? (
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <div style={{ flex: 1, textAlign: "center" }}>
+              <div style={{ fontSize: 13, fontWeight: 700, color: T.text, fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+                Next Bombe
+              </div>
+              <div style={{ fontSize: 32, fontWeight: 400, color: T.text, fontFamily: FONT, fontVariantNumeric: "tabular-nums" }}>
+                {countdown}
+              </div>
             </div>
-            <div style={{ fontSize: 32, fontWeight: 400, color: T.text, fontFamily: FONT, fontVariantNumeric: "tabular-nums" }}>
-              {countdown}
+            <div style={{ width: 1, height: 52, background: T.border, margin: "0 16px" }} />
+            <div style={{ flex: 1 }}>
+              <button onClick={onShare} style={{
+                width: "100%", padding: "16px",
+                background: T.accent,
+                border: "none", borderRadius: 4,
+                color: "#fff", fontSize: 16, fontWeight: 700,
+                cursor: "pointer",
+                fontFamily: FONT,
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+              }}>
+                {copied === "success" ? "Copied!" : copied === "failed" ? "Failed" : "Share"}
+                {!copied && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                  <polyline points="16 6 12 2 8 6"/>
+                  <line x1="12" y1="2" x2="12" y2="15"/>
+                </svg>}
+              </button>
             </div>
           </div>
-          <div style={{ width: 1, height: 52, background: T.border, margin: "0 16px" }} />
-          <div style={{ flex: 1 }}>
-            <button onClick={onShare} style={{
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <button onClick={onPractice} style={{
               width: "100%", padding: "16px",
               background: T.accent,
               border: "none", borderRadius: 4,
               color: "#fff", fontSize: 16, fontWeight: 700,
-              cursor: "pointer",
-              fontFamily: FONT,
-              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
-            }}>
-              {copied === "success" ? "Copied!" : copied === "failed" ? "Failed" : "Share"}
-              {!copied && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
-                <polyline points="16 6 12 2 8 6"/>
-                <line x1="12" y1="2" x2="12" y2="15"/>
-              </svg>}
-            </button>
+              cursor: "pointer", fontFamily: FONT,
+            }}>New Word</button>
+            <button onClick={onDaily} style={{
+              width: "100%", padding: "12px",
+              background: "none",
+              border: `1px solid ${T.border}`, borderRadius: 4,
+              color: T.secondary, fontSize: 14, fontWeight: 600,
+              cursor: "pointer", fontFamily: FONT,
+            }}>Today's Puzzle</button>
           </div>
-        </div>
+        )}
+
+        {mode === "daily" && (
+          <div style={{ marginTop: 12 }}>
+            <button onClick={onPractice} style={{
+              background: "none", border: "none",
+              color: T.secondary, fontSize: 13, cursor: "pointer",
+              fontFamily: FONT, textDecoration: "underline", padding: 4,
+            }}>Practice with a random word</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -853,14 +904,17 @@ function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats }
 // --- Main App ---
 export default function App() {
   const [secretWord] = useState(getDailyWord);
+  const [mode, setMode] = useState("daily"); // "daily" | "practice"
+  const [practiceWord, setPracticeWord] = useState(null);
+  const activeWord = mode === "practice" ? practiceWord : secretWord;
 
   const shiftedGrid = useMemo(() => {
-    const secretSet = new Set(secretWord.split(""));
+    const secretSet = new Set(activeWord.split(""));
     const remaining = ALPHABET.filter(entry =>
       !entry.split("").some(ch => secretSet.has(ch))
     );
     return remaining;
-  }, [secretWord]);
+  }, [activeWord]);
 
   const [revealedPositions, setRevealedPositions] = useState(() => {
     const saved = loadDailyState();
@@ -980,10 +1034,12 @@ export default function App() {
     };
   }, []);
 
-  // Save state on changes
+  // Save state on changes (daily mode only)
   useEffect(() => {
-    saveDailyState({ revealedPositions, queriesUsed, gameOver, won });
-  }, [revealedPositions, queriesUsed, gameOver, won]);
+    if (mode === "daily") {
+      saveDailyState({ revealedPositions, queriesUsed, gameOver, won });
+    }
+  }, [revealedPositions, queriesUsed, gameOver, won, mode]);
 
 
   const handleReveal = useCallback((position) => {
@@ -1016,18 +1072,20 @@ export default function App() {
     const g = guessTiles.join("").toUpperCase();
     if (g.length !== 5) return;
 
-    if (g === secretWord) {
+    if (g === activeWord) {
       setWon(true);
       setGameOver(true);
-      const newStats = { ...stats };
-      newStats.played += 1;
-      newStats.won += 1;
-      newStats.streak += 1;
-      newStats.maxStreak = Math.max(newStats.streak, newStats.maxStreak);
-      newStats.revealCounts = [...(newStats.revealCounts || []), queriesUsed];
-      newStats.lastDate = getEasternDateString();
-      setStats(newStats);
-      saveStats(newStats);
+      if (mode === "daily") {
+        const newStats = { ...stats };
+        newStats.played += 1;
+        newStats.won += 1;
+        newStats.streak += 1;
+        newStats.maxStreak = Math.max(newStats.streak, newStats.maxStreak);
+        newStats.revealCounts = [...(newStats.revealCounts || []), queriesUsed];
+        newStats.lastDate = getEasternDateString();
+        setStats(newStats);
+        saveStats(newStats);
+      }
       setTimeout(() => setShowResult(true), 600);
     } else {
       setWrongGuess(true);
@@ -1035,28 +1093,79 @@ export default function App() {
         setWrongGuess(false);
         setGameOver(true);
         setWon(false);
-        const newStats = { ...stats };
-        newStats.played += 1;
-        newStats.streak = 0;
-        newStats.lastDate = getEasternDateString();
-        setStats(newStats);
-        saveStats(newStats);
+        if (mode === "daily") {
+          const newStats = { ...stats };
+          newStats.played += 1;
+          newStats.streak = 0;
+          newStats.lastDate = getEasternDateString();
+          setStats(newStats);
+          saveStats(newStats);
+        }
         setTimeout(() => setShowResult(true), 300);
       }, 800);
     }
-  }, [guessTiles, secretWord, stats]);
+  }, [guessTiles, activeWord, stats, mode]);
 
   const handleGiveUp = useCallback(() => {
     setGameOver(true);
     setWon(false);
-    const newStats = { ...stats };
-    newStats.played += 1;
-    newStats.streak = 0;
-    newStats.lastDate = getEasternDateString();
-    setStats(newStats);
-    saveStats(newStats);
+    if (mode === "daily") {
+      const newStats = { ...stats };
+      newStats.played += 1;
+      newStats.streak = 0;
+      newStats.lastDate = getEasternDateString();
+      setStats(newStats);
+      saveStats(newStats);
+    }
     setTimeout(() => setShowResult(true), 300);
-  }, [stats]);
+  }, [stats, mode]);
+
+  const startPractice = useCallback(() => {
+    // Pick a random word that isn't today's daily word
+    let word;
+    do {
+      word = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
+    } while (word === secretWord);
+    setPracticeWord(word);
+    setMode("practice");
+    setRevealedPositions({});
+    setQueriesUsed(0);
+    setGameOver(false);
+    setWon(false);
+    setGuessTiles(["", "", "", "", ""]);
+    setFocusedTile(0);
+    setCrossedLetters(new Set());
+    setShowResult(false);
+    setShowHelp(false);
+    setWrongGuess(false);
+  }, [secretWord]);
+
+  const returnToDaily = useCallback(() => {
+    setMode("daily");
+    const saved = loadDailyState();
+    setRevealedPositions(saved?.revealedPositions || {});
+    setQueriesUsed(saved?.queriesUsed || 0);
+    setGameOver(saved?.gameOver || false);
+    setWon(saved?.won || false);
+    setGuessTiles(["", "", "", "", ""]);
+    setFocusedTile(0);
+    setShowResult(false);
+    setWrongGuess(false);
+    // Reinitialize crossed letters from saved state
+    if (saved && saved.revealedPositions) {
+      const sw = getDailyWord();
+      const secretSet = new Set(sw.split(""));
+      const grid = ALPHABET.filter(entry => !entry.split("").some(ch => secretSet.has(ch)));
+      const crossed = new Set();
+      Object.keys(saved.revealedPositions).forEach(idx => {
+        const letter = grid[parseInt(idx)];
+        if (letter) letter.split("").forEach(ch => crossed.add(ch));
+      });
+      setCrossedLetters(crossed);
+    } else {
+      setCrossedLetters(new Set());
+    }
+  }, []);
 
   const generateShareText = () => {
     const dayNum = getDayNumber();
@@ -1202,11 +1311,21 @@ export default function App() {
           </button>
         </div>
 
-        <div style={{
-          fontSize: 32, fontWeight: 700, letterSpacing: 1,
-          color: T.text,
-          fontFamily: FONT,
-        }}>Bombe</div>
+        <div style={{ textAlign: "center" }}>
+          <div style={{
+            fontSize: 32, fontWeight: 700, letterSpacing: 1,
+            color: T.text,
+            fontFamily: FONT,
+            lineHeight: 1,
+          }}>Bombe</div>
+          {mode === "practice" && (
+            <div style={{
+              fontSize: 11, fontWeight: 600, color: T.accent,
+              fontFamily: FONT, textTransform: "uppercase",
+              letterSpacing: 1.5, marginTop: 2,
+            }}>Practice</div>
+          )}
+        </div>
 
         <div style={{ position: "absolute", right: 16, display: "flex", alignItems: "center" }}>
           <button onClick={() => setShowStats(true)} style={{
@@ -1226,25 +1345,33 @@ export default function App() {
       {/* Reveals counter */}
       <div style={{
         width: "100%", maxWidth: 800, padding: "16px 20px",
-        display: "flex", alignItems: "center", justifyContent: "center",
-        gap: 12,
+        display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
       }}>
-        <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-          {Array.from({ length: MAX_QUERIES }).map((_, i) => (
-            <div key={i} style={{
-              width: 10, height: 10, borderRadius: 3,
-              background: i < queriesUsed ? T.counterActive : T.counterInactive,
-              transition: "background 0.3s",
-            }} />
-          ))}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            {Array.from({ length: MAX_QUERIES }).map((_, i) => (
+              <div key={i} style={{
+                width: 10, height: 10, borderRadius: 3,
+                background: i < queriesUsed ? T.counterActive : T.counterInactive,
+                transition: "background 0.3s",
+              }} />
+            ))}
+          </div>
+          <div style={{
+            fontSize: 14, color: queriesLeft <= 3 ? T.warning : T.secondary,
+            fontWeight: 700,
+            fontFamily: FONT,
+          }}>
+            {queriesLeft}
+          </div>
         </div>
-        <div style={{
-          fontSize: 14, color: queriesLeft <= 3 ? T.warning : T.secondary,
-          fontWeight: 700,
-          fontFamily: FONT,
-        }}>
-          {queriesLeft}
-        </div>
+        {mode === "practice" && !gameOver && (
+          <button onClick={returnToDaily} style={{
+            background: "none", border: "none",
+            color: T.secondary, fontSize: 12, cursor: "pointer",
+            fontFamily: FONT, padding: 0,
+          }}>{"\u2190"} Today{"\u2019"}s puzzle</button>
+        )}
       </div>
 
       {/* Tile grid - 5x4 grid */}
@@ -1542,24 +1669,50 @@ export default function App() {
             letterSpacing: 4,
             fontFamily: FONT,
           }}>
-            {secretWord}
+            {activeWord}
           </div>
-          <div style={{ display: "flex", gap: 10 }}>
-            <button onClick={handleShare} style={{
-              padding: "12px 28px", background: T.accent,
-              border: "none", borderRadius: 4,
-              color: "#fff", fontSize: 15, fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: FONT,
-            }}>{copied === "success" ? "Copied!" : copied === "failed" ? "Failed" : "Share"}</button>
-            <button onClick={() => setShowResult(true)} style={{
-              padding: "12px 28px", background: "none",
-              border: `1px solid ${T.border}`, borderRadius: 4,
-              color: T.secondary, fontSize: 15, fontWeight: 600,
-              cursor: "pointer",
-              fontFamily: FONT,
-            }}>Details</button>
-          </div>
+          {mode === "daily" ? (
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={handleShare} style={{
+                padding: "12px 28px", background: T.accent,
+                border: "none", borderRadius: 4,
+                color: "#fff", fontSize: 15, fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: FONT,
+              }}>{copied === "success" ? "Copied!" : copied === "failed" ? "Failed" : "Share"}</button>
+              <button onClick={() => setShowResult(true)} style={{
+                padding: "12px 28px", background: "none",
+                border: `1px solid ${T.border}`, borderRadius: 4,
+                color: T.secondary, fontSize: 15, fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: FONT,
+              }}>Details</button>
+              <button onClick={startPractice} style={{
+                padding: "12px 28px", background: "none",
+                border: `1px solid ${T.border}`, borderRadius: 4,
+                color: T.secondary, fontSize: 15, fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: FONT,
+              }}>Practice</button>
+            </div>
+          ) : (
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={startPractice} style={{
+                padding: "12px 28px", background: T.accent,
+                border: "none", borderRadius: 4,
+                color: "#fff", fontSize: 15, fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: FONT,
+              }}>New Word</button>
+              <button onClick={returnToDaily} style={{
+                padding: "12px 28px", background: "none",
+                border: `1px solid ${T.border}`, borderRadius: 4,
+                color: T.secondary, fontSize: 15, fontWeight: 600,
+                cursor: "pointer",
+                fontFamily: FONT,
+              }}>Today's Puzzle</button>
+            </div>
+          )}
         </div>
       )}
 
@@ -1576,7 +1729,7 @@ export default function App() {
       )}
 
       {/* Modals */}
-      {showHelp && <HowToModal onClose={() => setShowHelp(false)} crossedLetters={crossedLetters} setCrossedLetters={setCrossedLetters} />}
+      {showHelp && <HowToModal onClose={() => setShowHelp(false)} onPractice={startPractice} crossedLetters={crossedLetters} setCrossedLetters={setCrossedLetters} />}
       {showCheatSheet && (
         <div style={{
           position: "fixed", inset: 0, background: T.modalOverlay,
@@ -1663,12 +1816,15 @@ export default function App() {
       {showResult && (
         <ResultModal
           won={won}
-          word={secretWord}
+          word={activeWord}
           queriesUsed={queriesUsed}
           onShare={handleShare}
           onClose={() => setShowResult(false)}
           copied={copied}
           stats={stats}
+          mode={mode}
+          onPractice={startPractice}
+          onDaily={returnToDaily}
         />
       )}
     </div>
