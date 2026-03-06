@@ -839,31 +839,36 @@ export default function App() {
         borderBottom: `1px solid ${T.border}`,
         position: "relative",
       }}>
+        <div style={{ position: "absolute", left: 16, display: "flex", alignItems: "center" }}>
+          <button onClick={() => setShowHelp(true)} style={{
+            background: "none", border: "none",
+            color: T.text, cursor: "pointer", padding: 4,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+              <line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+          </button>
+        </div>
+
         <div style={{
           fontSize: 32, fontWeight: 700, letterSpacing: 1,
           color: T.text,
           fontFamily: FONT,
         }}>Bombe</div>
 
-        <div style={{ position: "absolute", right: 20, display: "flex", gap: 4, alignItems: "center" }}>
-          <button onClick={() => setShowHelp(true)} style={{
-            background: "none", border: `1.5px solid ${T.text}`,
-            borderRadius: "50%",
-            width: 24, height: 24,
-            color: T.text, fontSize: 13, cursor: "pointer",
-            fontFamily: FONT, fontWeight: 700,
-            display: "flex", alignItems: "center", justifyContent: "center",
-            padding: 0,
-          }}>?</button>
+        <div style={{ position: "absolute", right: 16, display: "flex", alignItems: "center" }}>
           <button onClick={() => setShowStats(true)} style={{
             background: "none", border: "none",
             color: T.text, cursor: "pointer", padding: 4,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
-              <rect x="1" y="10" width="3.5" height="7" rx="0.5" fill={T.text}/>
-              <rect x="7" y="5" width="3.5" height="12" rx="0.5" fill={T.text}/>
-              <rect x="13" y="1" width="3.5" height="16" rx="0.5" fill={T.text}/>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={T.text} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="20" x2="18" y2="10"/>
+              <line x1="12" y1="20" x2="12" y2="4"/>
+              <line x1="6" y1="20" x2="6" y2="14"/>
             </svg>
           </button>
         </div>
