@@ -1023,7 +1023,9 @@ export default function App() {
             spellCheck={false}
             inputMode="text"
             onKeyDown={(e) => {
+              e.stopPropagation(); // prevent global handler from doubling input
               const key = e.key.toUpperCase();
+              if (key === "UNIDENTIFIED" || key === "PROCESS") return; // let onInput handle it
               if (key === "BACKSPACE") {
                 e.preventDefault();
                 setGuessTiles(prev => {
@@ -1034,6 +1036,7 @@ export default function App() {
                   setFocusedTile(idx);
                   return next;
                 });
+                hiddenInputRef.current.value = "";
               } else if (key === "ENTER") {
                 handleGuess();
               } else if (key.length === 1 && key >= "A" && key <= "Z") {
@@ -1045,9 +1048,23 @@ export default function App() {
                   setFocusedTile(nextIdx);
                   return next;
                 });
+                hiddenInputRef.current.value = "";
               }
-              // Clear the hidden input value so it keeps working
-              setTimeout(() => { if (hiddenInputRef.current) hiddenInputRef.current.value = ""; }, 0);
+            }}
+            onBeforeInput={(e) => {
+              // Mobile keyboards: handle input directly, prevent default to avoid duplication
+              const char = (e.data || "").toUpperCase();
+              if (char.length === 1 && char >= "A" && char <= "Z") {
+                e.preventDefault();
+                setGuessTiles(prev => {
+                  const next = [...prev];
+                  next[focusedTile] = char;
+                  const nextIdx = Math.min(focusedTile + 1, 4);
+                  setFocusedTile(nextIdx);
+                  return next;
+                });
+                hiddenInputRef.current.value = "";
+              }
             }}
             onFocus={() => setGuessFocused(true)}
             onBlur={() => setGuessFocused(false)}
