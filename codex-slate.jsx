@@ -428,18 +428,19 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
   const newTiles = newByStep[step] || [];
   const found = foundByStep[step] || [];
 
-  const DemoTile = ({ letter, isRevealed, isNew }) => (
+  const DemoTile = ({ letter, isRevealed, isNew, position }) => (
     <div style={{
       width: 36, height: 36,
       display: "flex", alignItems: "center", justifyContent: "center",
       borderRadius: 3,
-      fontSize: 13, fontWeight: 700, fontFamily: FONT,
+      fontSize: isRevealed ? 13 : 11,
+      fontWeight: 700, fontFamily: FONT,
       background: isNew ? T.accent : isRevealed ? "#9fb3c8" : "#fff",
-      color: isRevealed ? "#fff" : "transparent",
+      color: isNew ? "#fff" : isRevealed ? "#fff" : "#c0c4ca",
       border: `2px solid ${isNew ? T.accent : isRevealed ? "#8a9db5" : T.border}`,
       transition: "all 0.4s ease",
     }}>
-      {letter || "\u00A0"}
+      {isRevealed ? letter : position}
     </div>
   );
 
@@ -473,14 +474,34 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
       gap: 3, maxWidth: 210, margin: "0 auto 10px",
     }}>
       {DEMO_GRID.map((letter, i) => (
-        <DemoTile key={i} letter={letter} isRevealed={revealed.includes(i)} isNew={newTiles.includes(i)} />
+        <DemoTile key={i} letter={letter} isRevealed={revealed.includes(i)} isNew={newTiles.includes(i)} position={i + 1} />
       ))}
+    </div>
+  );
+
+  // Alphabet strip A–H showing which letters are present vs missing
+  const AlphaStrip = () => (
+    <div style={{ display: "flex", gap: 3, justifyContent: "center", margin: "2px 0 12px" }}>
+      {"ABCDEFGH".split("").map(l => {
+        const isMissing = found.includes(l);
+        return (
+          <div key={l} style={{
+            width: 28, height: 28,
+            display: "flex", alignItems: "center", justifyContent: "center",
+            borderRadius: 3, fontSize: 12, fontWeight: 700, fontFamily: FONT,
+            background: isMissing ? "#e8f5e9" : "#f5f5f5",
+            color: isMissing ? "#2e7d32" : "#bbb",
+            border: `1.5px solid ${isMissing ? "#a5d6a7" : "#e8e8e8"}`,
+            textDecoration: isMissing ? "line-through" : "none",
+          }}>{l}</div>
+        );
+      })}
     </div>
   );
 
   const FoundRow = () => found.length > 0 ? (
     <div style={{ display: "flex", gap: 4, justifyContent: "center", alignItems: "center", marginBottom: 10 }}>
-      <span style={{ fontSize: 11, color: T.secondary, fontFamily: FONT, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Found:</span>
+      <span style={{ fontSize: 11, color: T.secondary, fontFamily: FONT, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Missing:</span>
       {found.map(l => (
         <span key={l} style={{
           background: "#e8f5e9", color: "#2e7d32", padding: "2px 8px",
@@ -500,7 +521,7 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
   );
 
   const P = ({ children, secondary }) => (
-    <p style={{ fontSize: 14, color: secondary ? T.secondary : T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>{children}</p>
+    <p style={{ fontSize: 14, color: secondary ? T.secondary : T.text, margin: "0 0 6px", fontFamily: FONT, lineHeight: 1.5 }}>{children}</p>
   );
 
   const stepTitles = ["The Grid", "Reveal #1", "Reveal #2", "Reveal #3", "Solve It!"];
@@ -509,39 +530,43 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
     // Step 0: The Grid
     <>
       <MiniGrid />
-      <P>The alphabet fills a 4{"\u00D7"}5 grid, but <strong>5 letters have been removed</strong>. The remaining 20 shift left to close the gaps.</P>
-      <P secondary>Those 5 missing letters form the secret word. Tap tiles to figure out which ones are gone.</P>
+      <P>The alphabet (A{"\u2013"}Z) fills a 4{"\u00D7"}5 grid, but <strong>5 letters have been removed</strong>. The remaining 20 shift left to close the gaps.</P>
+      <P>Each tile shows its <strong>position number</strong>. Reveal tiles to see which letter is at that position {"\u2014"} then deduce which letters are missing.</P>
+      <P secondary>Those 5 missing letters unscramble into the secret word. Use the <strong>Cheat Sheet</strong> tab to track letters during gameplay.</P>
     </>,
     // Step 1: Tile 1 → C (found A, B)
     <>
       <MiniGrid />
+      <AlphaStrip />
       <FoundRow />
       <Pill>Tile <strong>1</strong> {"\u2192"} <strong style={{ color: T.accent }}>C</strong></Pill>
-      <P>Tile 1 shows <strong>C</strong> {"\u2014"} the 3rd letter of the alphabet. But it{"\u2019"}s at position 1! That means 2 letters before it were removed.</P>
-      <P>The only letters before C are <strong style={{ color: "#2e7d32" }}>A</strong> and <strong style={{ color: "#2e7d32" }}>B</strong> {"\u2014"} both must be missing!</P>
+      <P>If no letters were missing, tile 1 would show <strong>A</strong>. Instead it shows <strong>C</strong> {"\u2014"} the 3rd letter of the alphabet at position 1.</P>
+      <P>Two letters were skipped. The only letters before C are A and B {"\u2014"} <strong style={{ color: "#2e7d32" }}>both must be missing</strong>!</P>
     </>,
     // Step 2: Tile 2 → F (found D, E)
     <>
       <MiniGrid />
+      <AlphaStrip />
       <FoundRow />
       <Pill>Tile <strong>2</strong> {"\u2192"} <strong style={{ color: T.accent }}>F</strong></Pill>
-      <P>Tile 2 shows <strong>F</strong> {"\u2014"} the 6th letter at position 2. The gap grew by 2 more, meaning 2 letters between C and F were removed.</P>
-      <P>That{"\u2019"}s <strong style={{ color: "#2e7d32" }}>D</strong> and <strong style={{ color: "#2e7d32" }}>E</strong> {"\u2014"} both missing!</P>
+      <P>We just confirmed C is at tile 1. So tile 2 should show <strong>D</strong> (the next letter after C). Instead it shows <strong>F</strong>!</P>
+      <P>D and E were both skipped {"\u2014"} <strong style={{ color: "#2e7d32" }}>D and E are missing</strong>!</P>
     </>,
     // Step 3: Tile 3 → H (found G)
     <>
       <MiniGrid />
+      <AlphaStrip />
       <FoundRow />
       <Pill>Tile <strong>3</strong> {"\u2192"} <strong style={{ color: T.accent }}>H</strong></Pill>
-      <P>Tile 3 shows <strong>H</strong> {"\u2014"} the 8th letter at position 3. One more gap: the only letter between F and H is <strong style={{ color: "#2e7d32" }}>G</strong>.</P>
-      <P>All 5 missing letters found in just <strong>3 reveals</strong>!</P>
+      <P>F is at tile 2, so tile 3 should show <strong>G</strong>. Instead it shows <strong>H</strong> {"\u2014"} G was skipped!</P>
+      <P><strong style={{ color: "#2e7d32" }}>G is missing</strong>! That{"\u2019"}s all 5 letters found in just <strong>3 reveals</strong>.</P>
     </>,
     // Step 4: Solve
     <>
       <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "0 auto 14px" }}>
         {["A", "E", "G", "D", "B"].map((l, i) => <GuessTile key={i} letter={l} />)}
       </div>
-      <P>Type the missing letters into the guess tiles, then drag to rearrange them into the word:</P>
+      <P>Type the 5 missing letters into the guess tiles, then drag to rearrange them into the word:</P>
       <p style={{ textAlign: "center", fontSize: 28, fontWeight: 700, color: T.accent, margin: "8px 0 0", fontFamily: FONT, letterSpacing: 4 }}>BADGE</p>
     </>,
   ];
