@@ -571,16 +571,17 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
     </>,
   ];
 
-  // Cheat Sheet
-  const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-  const toggleCrossed = (letter) => {
+  // Cheat Sheet — uses global ALPHABET (25 entries, XY combined)
+  const toggleCrossed = (entry) => {
     setCrossedLetters(prev => {
       const next = new Set(prev);
-      if (next.has(letter)) next.delete(letter);
-      else next.add(letter);
+      const chars = entry.split("");
+      const allCrossed = chars.every(ch => next.has(ch));
+      chars.forEach(ch => allCrossed ? next.delete(ch) : next.add(ch));
       return next;
     });
   };
+  const alphaPos = (entry) => entry === "XY" ? "24-25" : String(entry.charCodeAt(0) - 64);
 
   const CheatSheet = () => (
     <div>
@@ -588,15 +589,15 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
         Tap to cross out letters you{"\u2019"}ve confirmed are in the grid. The remaining ones are candidates for the secret word.
       </p>
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(7, 1fr)",
-        gap: 4, maxWidth: 340, margin: "0 auto 16px",
+        display: "grid", gridTemplateColumns: "repeat(5, 1fr)",
+        gap: 4, maxWidth: 280, margin: "0 auto 16px",
       }}>
-        {ALPHABET.map((letter, i) => {
-          const crossed = crossedLetters.has(letter);
+        {ALPHABET.map((entry) => {
+          const crossed = entry.split("").every(ch => crossedLetters.has(ch));
           return (
             <button
-              key={letter}
-              onClick={() => toggleCrossed(letter)}
+              key={entry}
+              onClick={() => toggleCrossed(entry)}
               style={{
                 display: "flex", flexDirection: "column",
                 alignItems: "center", justifyContent: "center",
@@ -607,18 +608,17 @@ function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
                 cursor: "pointer",
                 opacity: crossed ? 0.35 : 1,
                 transition: "all 0.15s ease",
-                position: "relative",
               }}
             >
               <span style={{
                 fontSize: 15, fontWeight: 700, fontFamily: FONT,
                 color: crossed ? T.secondary : T.text,
                 textDecoration: crossed ? "line-through" : "none",
-              }}>{letter}</span>
+              }}>{entry}</span>
               <span style={{
                 fontSize: 9, fontWeight: 600, fontFamily: FONT,
                 color: crossed ? "#c0c4ca" : T.secondary,
-              }}>{i + 1}</span>
+              }}>{alphaPos(entry)}</span>
             </button>
           );
         })}
@@ -1580,18 +1580,19 @@ export default function App() {
               Tap to cross out confirmed letters.{<br/>}The rest are candidates for the word.
             </p>
             <div style={{
-              display: "grid", gridTemplateColumns: "repeat(7, 1fr)",
-              gap: 5, maxWidth: 340, margin: "0 auto 14px",
+              display: "grid", gridTemplateColumns: "repeat(5, 1fr)",
+              gap: 5, maxWidth: 280, margin: "0 auto 14px",
             }}>
-              {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter, i) => {
-                const crossed = crossedLetters.has(letter);
+              {ALPHABET.map((entry, i) => {
+                const crossed = entry.split("").every(ch => crossedLetters.has(ch));
                 return (
                   <button
-                    key={letter}
+                    key={entry}
                     onClick={() => setCrossedLetters(prev => {
                       const next = new Set(prev);
-                      if (next.has(letter)) next.delete(letter);
-                      else next.add(letter);
+                      const chars = entry.split("");
+                      const allCrossed = chars.every(ch => next.has(ch));
+                      chars.forEach(ch => allCrossed ? next.delete(ch) : next.add(ch));
                       return next;
                     })}
                     style={{
@@ -1610,11 +1611,11 @@ export default function App() {
                       fontSize: 16, fontWeight: 700, fontFamily: FONT,
                       color: crossed ? T.secondary : T.text,
                       textDecoration: crossed ? "line-through" : "none",
-                    }}>{letter}</span>
+                    }}>{entry}</span>
                     <span style={{
                       fontSize: 9, fontWeight: 600, fontFamily: FONT,
                       color: crossed ? "#c0c4ca" : T.secondary,
-                    }}>{i + 1}</span>
+                    }}>{entry === "XY" ? "24-25" : String(entry.charCodeAt(0) - 64)}</span>
                   </button>
                 );
               })}
