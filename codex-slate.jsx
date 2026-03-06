@@ -196,11 +196,11 @@ const T = {
 function getDailyWord() {
   const now = new Date();
   const seed = now.getFullYear() * 10000 + (now.getMonth() + 1) * 100 + now.getDate();
-  return WORD_LIST[seed % WORD_LIST.length];
+  return WORD_LIST[(seed * 7 + 3) % WORD_LIST.length];
 }
 
 function getDayNumber() {
-  const start = new Date(2026, 2, 5); // March 5 2026
+  const start = new Date(2026, 2, 6); // March 6 2026
   const now = new Date();
   return Math.floor((now - start) / 86400000) + 1;
 }
@@ -457,8 +457,11 @@ function HowToModal({ onClose }) {
 
         <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
 
-        <p style={{ fontSize: 14, color: T.text, margin: "0 0 8px", fontFamily: FONT, lineHeight: 1.5 }}>
-          You have <strong>10 reveals</strong> to deduce all 5 missing letters, then unscramble them to guess the word. Note: <strong>X</strong> and <strong>Y</strong> share a single tile.
+        <p style={{ fontSize: 14, color: T.text, margin: "0 0 12px", fontFamily: FONT, lineHeight: 1.5 }}>
+          You have <strong>10 reveals</strong> to deduce all 5 missing letters, then unscramble them to guess the word.
+        </p>
+        <p style={{ fontSize: 13, color: T.secondary, margin: "0 0 8px", fontFamily: FONT, lineHeight: 1.5, fontStyle: "italic" }}>
+          <strong style={{ color: T.text, fontStyle: "normal" }}>XY</strong> share a single tile in the grid.
         </p>
 
         <p style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0", fontFamily: FONT }}>
