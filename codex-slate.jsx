@@ -1577,7 +1577,7 @@ export default function App() {
               letterSpacing: 0.5,
             }}>Cheat Sheet</h3>
             <p style={{ fontSize: 13, color: T.secondary, margin: "0 0 14px", fontFamily: FONT, lineHeight: 1.5, textAlign: "center" }}>
-              Tap to cross out letters you{"\u2019"}ve confirmed are in the grid.
+              Tap to cross out confirmed letters.{<br/>}The rest are candidates for the word.
             </p>
             <div style={{
               display: "grid", gridTemplateColumns: "repeat(7, 1fr)",
