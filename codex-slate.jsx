@@ -886,7 +886,7 @@ export default function App() {
 
       {/* Reveals counter */}
       <div style={{
-        width: "100%", maxWidth: 800, padding: "12px 20px",
+        width: "100%", maxWidth: 800, padding: "16px 20px",
         display: "flex", alignItems: "center", justifyContent: "center",
         gap: 12,
       }}>
@@ -910,7 +910,7 @@ export default function App() {
 
       {/* Tile grid - 5x4 grid */}
       <div style={{
-        width: "100%", maxWidth: 800, padding: "4px 16px",
+        width: "100%", maxWidth: 800, padding: "0 16px",
         display: "grid",
         gridTemplateColumns: "repeat(5, 1fr)",
         gap: 6,
