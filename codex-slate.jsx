@@ -458,7 +458,7 @@ function HowToModal({ onClose }) {
         <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
 
         <p style={{ fontSize: 14, color: T.text, margin: "0 0 8px", fontFamily: FONT, lineHeight: 1.5 }}>
-          You have <strong>10 reveals</strong> to deduce all 5 missing letters, then unscramble them to guess the word.
+          You have <strong>10 reveals</strong> to deduce all 5 missing letters, then unscramble them to guess the word. Note: <strong>X</strong> and <strong>Y</strong> share a single tile.
         </p>
 
         <p style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0", fontFamily: FONT }}>
