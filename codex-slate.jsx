@@ -397,148 +397,226 @@ function StatsModal({ stats, onClose }) {
   );
 }
 
-// --- How To Modal (interactive walkthrough) ---
-function HowToModal({ onClose }) {
+// --- How To Modal (interactive walkthrough + cheat sheet) ---
+function HowToModal({ onClose, crossedLetters, setCrossedLetters }) {
+  const [tab, setTab] = useState("tutorial");
   const [step, setStep] = useState(0);
-  const TOTAL_STEPS = 5;
+  const TOTAL_STEPS = 6;
 
-  // Demo: first 5 tiles of shifted grid for "CRIMP" (missing C,I,M,P,R)
-  // Full shifted grid: A B D E F G H J K L N O Q S T U V W XY Z
-  const ROW = ["A", "B", "D", "E", "F"];
+  // Demo grid for CRIMP (missing C, I, M, P, R)
+  // Grid positions (1-indexed): 1=A 2=B 3=D 4=E 5=F | 6=G 7=H 8=J 9=K 10=L | 11=N 12=O 13=Q 14=S 15=T | 16=U 17=V 18=W 19=XY 20=Z
+  const DEMO_GRID = ["A","B","D","E","F","G","H","J","K","L","N","O","Q","S","T","U","V","W","XY","Z"];
 
-  // Which tiles in the 5-tile row are revealed at each step
+  // Revealed positions (0-indexed) per step, which are newly revealed, and letters found
   const revealedByStep = [
-    [],           // step 0: all blank
-    [0],          // step 1: reveal pos 1 → A
-    [0, 1],       // step 2: reveal pos 2 → B
-    [0, 1, 2],    // step 3: reveal pos 3 → D (gap!)
-    [],           // step 4: guess tiles instead
+    [],                       // step 0: all blank
+    [2],                      // step 1: tile 3 → D
+    [2, 7],                   // step 2: + tile 8 → J
+    [2, 7, 10],               // step 3: + tile 11 → N
+    [2, 7, 10, 12, 13],       // step 4: + tiles 13 → Q, 14 → S
+    [2, 7, 10, 12, 13],       // step 5: guess
+  ];
+  const newByStep = [[], [2], [7], [10], [12, 13], []];
+  const foundByStep = [
+    [],
+    ["C"],
+    ["C", "I"],
+    ["C", "I", "M"],
+    ["C", "I", "M", "P", "R"],
+    ["C", "I", "M", "P", "R"],
   ];
 
-  const guessLetters = ["C", "R", "I", "M", "P"];
+  const revealed = revealedByStep[step] || [];
+  const newTiles = newByStep[step] || [];
+  const found = foundByStep[step] || [];
 
-  const DemoTile = ({ letter, revealed, number }) => (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
-      <div style={{
-        width: 48, height: 48,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        borderRadius: 4,
-        fontSize: 20, fontWeight: 700, fontFamily: FONT,
-        background: revealed ? T.accent : "#fff",
-        color: revealed ? "#fff" : "transparent",
-        border: `2px solid ${revealed ? T.accent : T.border}`,
-        transition: "all 0.3s ease",
-      }}>
-        {letter || "\u00A0"}
-      </div>
-      {number != null && (
-        <span style={{ fontSize: 10, color: T.secondary, fontFamily: FONT }}>{number}</span>
-      )}
+  const DemoTile = ({ letter, isRevealed, isNew }) => (
+    <div style={{
+      width: 36, height: 36,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      borderRadius: 3,
+      fontSize: 13, fontWeight: 700, fontFamily: FONT,
+      background: isNew ? T.accent : isRevealed ? "#9fb3c8" : "#fff",
+      color: isRevealed ? "#fff" : "transparent",
+      border: `2px solid ${isNew ? T.accent : isRevealed ? "#8a9db5" : T.border}`,
+      transition: "all 0.4s ease",
+    }}>
+      {letter || "\u00A0"}
     </div>
   );
 
   const GuessTile = ({ letter }) => (
     <div style={{
-      width: 48, height: 48,
+      width: 44, height: 44,
       display: "flex", alignItems: "center", justifyContent: "center",
       borderRadius: 4,
-      fontSize: 20, fontWeight: 700, fontFamily: FONT,
+      fontSize: 18, fontWeight: 700, fontFamily: FONT,
       color: letter ? T.text : T.secondary,
       background: letter ? "#fff" : "#f7f8fa",
       border: letter ? `2px solid ${T.border}` : `2px dashed #c0c4ca`,
     }}>{letter || ""}</div>
   );
 
-  const revealed = revealedByStep[step] || [];
-
   const Dots = () => (
-    <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16 }}>
+    <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 12 }}>
       {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
         <div key={i} style={{
           width: 8, height: 8, borderRadius: 4,
-          background: i === step ? T.accent : T.counterInactive,
+          background: i === step ? T.accent : i < step ? "#9fb3c8" : T.counterInactive,
           transition: "background 0.2s",
         }} />
       ))}
     </div>
   );
 
-  const DemoRow = () => (
-    <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "0 auto 16px" }}>
-      {ROW.map((letter, i) => (
-        <DemoTile key={i} letter={letter} revealed={revealed.includes(i)} number={i + 1} />
+  const MiniGrid = () => (
+    <div style={{
+      display: "grid", gridTemplateColumns: "repeat(5, 1fr)",
+      gap: 3, maxWidth: 210, margin: "0 auto 10px",
+    }}>
+      {DEMO_GRID.map((letter, i) => (
+        <DemoTile key={i} letter={letter} isRevealed={revealed.includes(i)} isNew={newTiles.includes(i)} />
       ))}
     </div>
   );
 
-  // Expected alphabet labels for comparison
-  const ExpectedLabel = ({ text }) => (
+  const FoundRow = () => found.length > 0 ? (
+    <div style={{ display: "flex", gap: 4, justifyContent: "center", alignItems: "center", marginBottom: 10 }}>
+      <span style={{ fontSize: 11, color: T.secondary, fontFamily: FONT, fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.5 }}>Found:</span>
+      {found.map(l => (
+        <span key={l} style={{
+          background: "#e8f5e9", color: "#2e7d32", padding: "2px 8px",
+          borderRadius: 3, fontSize: 13, fontWeight: 700, fontFamily: FONT,
+        }}>{l}</span>
+      ))}
+    </div>
+  ) : null;
+
+  const Pill = ({ children }) => (
     <div style={{
-      display: "inline-flex", gap: 3, alignItems: "center",
-      background: "#f0f4f8", borderRadius: 4, padding: "4px 10px",
-      margin: "0 auto 12px", fontFamily: FONT, fontSize: 13, color: T.secondary,
-    }}>{text}</div>
+      display: "inline-block",
+      background: "#f0f4f8", borderRadius: 4, padding: "5px 10px",
+      fontFamily: FONT, fontSize: 13, color: T.text, lineHeight: 1.4,
+      marginBottom: 8,
+    }}>{children}</div>
   );
+
+  const P = ({ children, secondary }) => (
+    <p style={{ fontSize: 14, color: secondary ? T.secondary : T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>{children}</p>
+  );
+
+  const stepTitles = ["The Grid", "Reveal #1", "Reveal #2", "Reveal #3", "Reveals #4\u20135", "Solve It!"];
 
   const stepContent = [
     // Step 0: The Grid
     <>
-      <DemoRow />
-      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
-        The alphabet fills a grid, but <strong>5 letters have been removed</strong>. The remaining letters shift left to close the gaps.
-      </p>
-      <p style={{ fontSize: 13, color: T.secondary, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
-        Those 5 missing letters form the secret word. Tap tiles to figure out which letters are gone.
-      </p>
+      <MiniGrid />
+      <P>The alphabet fills a 4{"\u00D7"}5 grid, but <strong>5 letters have been removed</strong>. The remaining 20 shift left to close the gaps.</P>
+      <P secondary>Those 5 missing letters form the secret word. Tap tiles to figure out which ones are gone.</P>
     </>,
-    // Step 1: Reveal Tile 1
+    // Step 1: Tile 3 → D (found C)
     <>
-      <DemoRow />
-      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
-        Tile 1 shows <strong style={{ color: T.accent }}>A</strong>.
-      </p>
-      <p style={{ fontSize: 14, color: T.text, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
-        A is the 1st letter of the alphabet {"\u2014"} right where you'd expect it. No letters are missing before A.
-      </p>
+      <MiniGrid />
+      <FoundRow />
+      <Pill>Tile <strong>3</strong> {"\u2192"} <strong style={{ color: T.accent }}>D</strong></Pill>
+      <P><strong>D</strong> is the 4th letter, but it{"\u2019"}s at position 3. That means 1 letter before it was removed. A and B fill positions 1{"\u2013"}2, so <strong style={{ color: "#2e7d32" }}>C</strong> must be missing!</P>
     </>,
-    // Step 2: Reveal Tile 2
+    // Step 2: Tile 8 → J (found I)
     <>
-      <DemoRow />
-      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
-        Tile 2 shows <strong style={{ color: T.accent }}>B</strong>.
-      </p>
-      <p style={{ fontSize: 14, color: T.text, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
-        A, B {"\u2014"} still in alphabetical order. No missing letters yet.
-      </p>
+      <MiniGrid />
+      <FoundRow />
+      <Pill>Tile <strong>8</strong> {"\u2192"} <strong style={{ color: T.accent }}>J</strong></Pill>
+      <P><strong>J</strong> is the 10th letter at position 8 {"\u2014"} 2 letters removed so far. We found C, so 1 more is missing between D and J.</P>
+      <P>D through H fill positions 3{"\u2013"}7, then it jumps to J {"\u2014"} <strong style={{ color: "#2e7d32" }}>I</strong> was skipped!</P>
     </>,
-    // Step 3: Spot the Gap!
+    // Step 3: Tile 11 → N (found M)
     <>
-      <DemoRow />
-      <div style={{ display: "flex", justifyContent: "center", marginBottom: 8 }}>
-        <ExpectedLabel text={"Expected: A, B, C \u2014 Got: A, B, D"} />
+      <MiniGrid />
+      <FoundRow />
+      <Pill>Tile <strong>11</strong> {"\u2192"} <strong style={{ color: T.accent }}>N</strong></Pill>
+      <P><strong>N</strong> is the 14th letter at position 11 {"\u2014"} 3 removed total. K and L are at positions 9{"\u2013"}10, then it jumps to N.</P>
+      <P><strong style={{ color: "#2e7d32" }}>M</strong> was skipped!</P>
+    </>,
+    // Step 4: Tiles 13 → Q, 14 → S (found P, R)
+    <>
+      <MiniGrid />
+      <FoundRow />
+      <Pill>Tile <strong>13</strong> {"\u2192"} <strong style={{ color: T.accent }}>Q</strong> &nbsp;&nbsp; Tile <strong>14</strong> {"\u2192"} <strong style={{ color: T.accent }}>S</strong></Pill>
+      <P>Position 13 shows <strong>Q</strong> (17th letter) {"\u2014"} jumped over <strong style={{ color: "#2e7d32" }}>P</strong>! Position 14 shows <strong>S</strong> (19th letter) {"\u2014"} jumped over <strong style={{ color: "#2e7d32" }}>R</strong>!</P>
+      <P>All 5 missing letters found in just 5 reveals!</P>
+    </>,
+    // Step 5: Solve
+    <>
+      <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "0 auto 14px" }}>
+        {["C", "R", "I", "M", "P"].map((l, i) => <GuessTile key={i} letter={l} />)}
       </div>
-      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
-        Tile 3 shows <strong style={{ color: T.accent }}>D</strong> {"\u2014"} but since tiles 1 and 2 were A, B, you'd expect <strong>C</strong> next.
-      </p>
-      <p style={{ fontSize: 14, color: T.text, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
-        <strong>C was removed!</strong> It's one of the 5 secret letters. Keep revealing tiles to find the rest of the gaps.
-      </p>
-    </>,
-    // Step 4: Guess the Word
-    <>
-      <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "0 auto 16px" }}>
-        {guessLetters.map((l, i) => <GuessTile key={i} letter={l} />)}
-      </div>
-      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
-        Once you've found all 5 missing letters, type them into the guess tiles below the grid.
-      </p>
-      <p style={{ fontSize: 14, color: T.text, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
-        Drag to rearrange and form the word: <strong style={{ color: T.accent }}>CRIMP</strong>!
-      </p>
+      <P>Type the missing letters into the guess tiles, then drag to rearrange them into the word:</P>
+      <p style={{ textAlign: "center", fontSize: 28, fontWeight: 700, color: T.accent, margin: "8px 0 0", fontFamily: FONT, letterSpacing: 4 }}>CRIMP</p>
     </>,
   ];
 
-  const stepTitles = ["The Grid", "Reveal a Tile", "Still in Order...", "Spot the Gap!", "Guess the Word"];
+  // Cheat Sheet
+  const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const toggleCrossed = (letter) => {
+    setCrossedLetters(prev => {
+      const next = new Set(prev);
+      if (next.has(letter)) next.delete(letter);
+      else next.add(letter);
+      return next;
+    });
+  };
+
+  const CheatSheet = () => (
+    <div>
+      <p style={{ fontSize: 13, color: T.secondary, margin: "0 0 12px", fontFamily: FONT, lineHeight: 1.5, textAlign: "center" }}>
+        Tap to cross out letters you{"\u2019"}ve confirmed are in the grid. The remaining ones are candidates for the secret word.
+      </p>
+      <div style={{
+        display: "grid", gridTemplateColumns: "repeat(7, 1fr)",
+        gap: 4, maxWidth: 340, margin: "0 auto 16px",
+      }}>
+        {ALPHABET.map((letter, i) => {
+          const crossed = crossedLetters.has(letter);
+          return (
+            <button
+              key={letter}
+              onClick={() => toggleCrossed(letter)}
+              style={{
+                display: "flex", flexDirection: "column",
+                alignItems: "center", justifyContent: "center",
+                padding: "6px 0",
+                borderRadius: 4,
+                border: `1.5px solid ${crossed ? "#d0d4da" : T.border}`,
+                background: crossed ? "#f0f0f0" : "#fff",
+                cursor: "pointer",
+                opacity: crossed ? 0.35 : 1,
+                transition: "all 0.15s ease",
+                position: "relative",
+              }}
+            >
+              <span style={{
+                fontSize: 15, fontWeight: 700, fontFamily: FONT,
+                color: crossed ? T.secondary : T.text,
+                textDecoration: crossed ? "line-through" : "none",
+              }}>{letter}</span>
+              <span style={{
+                fontSize: 9, fontWeight: 600, fontFamily: FONT,
+                color: crossed ? "#c0c4ca" : T.secondary,
+              }}>{i + 1}</span>
+            </button>
+          );
+        })}
+      </div>
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <button onClick={() => setCrossedLetters(new Set())} style={{
+          background: "none", border: "none",
+          color: T.secondary, fontSize: 12, cursor: "pointer",
+          fontFamily: FONT, textDecoration: "underline",
+          padding: 4,
+        }}>Reset all</button>
+      </div>
+    </div>
+  );
 
   return (
     <div style={{
@@ -566,56 +644,77 @@ function HowToModal({ onClose }) {
 
         <h3 style={{
           textAlign: "center", fontSize: 16, fontWeight: 700,
-          color: T.text, margin: "0 0 4px",
+          color: T.text, margin: "0 0 12px",
           fontFamily: FONT, textTransform: "uppercase",
           letterSpacing: 0.5,
         }}>How to Play</h3>
 
-        <Dots />
-
-        <p style={{
-          textAlign: "center", fontSize: 13, fontWeight: 700,
-          color: T.accent, margin: "0 0 14px",
-          fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5,
-        }}>{stepTitles[step]}</p>
-
-        <div key={step} style={{ minHeight: 160 }}>
-          {stepContent[step]}
-        </div>
-
-        {/* Navigation */}
-        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
-          {step > 0 && (
-            <button onClick={() => setStep(step - 1)} style={{
-              padding: "12px 16px",
-              background: "none",
-              border: `1px solid ${T.border}`, borderRadius: 4,
-              color: T.secondary, fontSize: 14, fontWeight: 600,
-              cursor: "pointer", fontFamily: FONT,
-            }}>Back</button>
-          )}
-          <button
-            onClick={() => step < TOTAL_STEPS - 1 ? setStep(step + 1) : onClose()}
-            style={{
-              flex: 1, padding: "12px",
-              background: T.accent,
-              border: "none", borderRadius: 4,
-              color: "#fff", fontSize: 15, fontWeight: 700,
-              cursor: "pointer", fontFamily: FONT,
+        {/* Tab bar */}
+        <div style={{ display: "flex", gap: 0, marginBottom: 16, borderBottom: `2px solid ${T.border}` }}>
+          {[["tutorial", "Tutorial"], ["cheatsheet", "Cheat Sheet"]].map(([key, label]) => (
+            <button key={key} onClick={() => setTab(key)} style={{
+              flex: 1, padding: "8px 0",
+              background: "none", border: "none",
+              borderBottom: tab === key ? `2px solid ${T.accent}` : "2px solid transparent",
+              marginBottom: -2,
+              color: tab === key ? T.accent : T.secondary,
+              fontSize: 13, fontWeight: 700, cursor: "pointer",
+              fontFamily: FONT, textTransform: "uppercase",
               letterSpacing: 0.5,
-            }}
-          >
-            {step < TOTAL_STEPS - 1 ? "Next" : "Got it"}
-          </button>
+            }}>{label}</button>
+          ))}
         </div>
 
-        {step === TOTAL_STEPS - 1 && (
+        {tab === "tutorial" ? (
           <>
-            <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0 12px" }} />
-            <p style={{ fontSize: 12, color: T.secondary, margin: 0, fontFamily: FONT, lineHeight: 1.5, textAlign: "center" }}>
-              You have <strong>14 reveals</strong> to find all 5 letters. A new puzzle drops daily!
-            </p>
+            <Dots />
+            <p style={{
+              textAlign: "center", fontSize: 13, fontWeight: 700,
+              color: T.accent, margin: "0 0 14px",
+              fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5,
+            }}>{stepTitles[step]}</p>
+
+            <div key={step} style={{ minHeight: 160 }}>
+              {stepContent[step]}
+            </div>
+
+            {/* Navigation */}
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              {step > 0 && (
+                <button onClick={() => setStep(step - 1)} style={{
+                  padding: "12px 16px",
+                  background: "none",
+                  border: `1px solid ${T.border}`, borderRadius: 4,
+                  color: T.secondary, fontSize: 14, fontWeight: 600,
+                  cursor: "pointer", fontFamily: FONT,
+                }}>Back</button>
+              )}
+              <button
+                onClick={() => step < TOTAL_STEPS - 1 ? setStep(step + 1) : onClose()}
+                style={{
+                  flex: 1, padding: "12px",
+                  background: T.accent,
+                  border: "none", borderRadius: 4,
+                  color: "#fff", fontSize: 15, fontWeight: 700,
+                  cursor: "pointer", fontFamily: FONT,
+                  letterSpacing: 0.5,
+                }}
+              >
+                {step < TOTAL_STEPS - 1 ? "Next" : "Got it"}
+              </button>
+            </div>
+
+            {step === TOTAL_STEPS - 1 && (
+              <>
+                <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0 12px" }} />
+                <p style={{ fontSize: 12, color: T.secondary, margin: 0, fontFamily: FONT, lineHeight: 1.5, textAlign: "center" }}>
+                  You have <strong>14 reveals</strong> to find all 5 letters. A new puzzle drops daily!
+                </p>
+              </>
+            )}
           </>
+        ) : (
+          <CheatSheet />
         )}
       </div>
     </div>
@@ -785,6 +884,7 @@ export default function App() {
     const saved = loadDailyState();
     return !saved;
   });
+  const [crossedLetters, setCrossedLetters] = useState(new Set());
   const [showResult, setShowResult] = useState(false);
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState(loadStats);
@@ -1390,7 +1490,7 @@ export default function App() {
       )}
 
       {/* Modals */}
-      {showHelp && <HowToModal onClose={() => setShowHelp(false)} />}
+      {showHelp && <HowToModal onClose={() => setShowHelp(false)} crossedLetters={crossedLetters} setCrossedLetters={setCrossedLetters} />}
       {showStats && <StatsModal stats={stats} onClose={() => setShowStats(false)} />}
       {showResult && (
         <ResultModal
