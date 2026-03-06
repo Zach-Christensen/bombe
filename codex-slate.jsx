@@ -205,29 +205,36 @@ function getDayNumber() {
   return Math.floor((now - start) / 86400000) + 1;
 }
 
-// --- Stats helpers ---
+// --- Stats helpers (localStorage for persistence across refreshes) ---
 function loadStats() {
   try {
-    const raw = window._gameStats;
-    if (raw) return raw;
+    const raw = localStorage.getItem("bombe_stats");
+    if (raw) return JSON.parse(raw);
   } catch {}
   return { played: 0, won: 0, streak: 0, maxStreak: 0, revealCounts: [], lastDate: null };
 }
 
 function saveStats(stats) {
-  window._gameStats = stats;
+  try {
+    localStorage.setItem("bombe_stats", JSON.stringify(stats));
+  } catch {}
 }
 
 function loadDailyState() {
   try {
-    const raw = window._dailyState;
-    if (raw && raw.date === new Date().toDateString()) return raw;
+    const raw = localStorage.getItem("bombe_daily");
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && parsed.date === new Date().toDateString()) return parsed;
+    }
   } catch {}
   return null;
 }
 
 function saveDailyState(state) {
-  window._dailyState = { ...state, date: new Date().toDateString() };
+  try {
+    localStorage.setItem("bombe_daily", JSON.stringify({ ...state, date: new Date().toDateString() }));
+  } catch {}
 }
 
 // --- NYT Theme constants ---
@@ -539,8 +546,8 @@ export default function App() {
 
       *, *::before, *::after { box-sizing: border-box; }
       html, body { margin: 0; padding: 0; }
-      html { height: 100%; }
-      body { min-height: 100%; }
+      html { height: 100%; background: ${T.bg}; }
+      body { min-height: 100%; background: ${T.bg}; }
 
       @keyframes codex-modal-slide {
         0% { transform: translateY(-20px); opacity: 0; }
