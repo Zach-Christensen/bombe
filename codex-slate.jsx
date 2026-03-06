@@ -906,6 +906,8 @@ export default function App() {
   const [secretWord] = useState(getDailyWord);
   const [mode, setMode] = useState("daily"); // "daily" | "practice"
   const [practiceWord, setPracticeWord] = useState(null);
+  const practiceIdx = useRef(0);
+  const PRACTICE_WORDS = ["CRANE", "GHOST", "PLUMB"];
   const activeWord = mode === "practice" ? practiceWord : secretWord;
 
   const shiftedGrid = useMemo(() => {
@@ -1121,11 +1123,8 @@ export default function App() {
   }, [stats, mode]);
 
   const startPractice = useCallback(() => {
-    // Pick a random word that isn't today's daily word
-    let word;
-    do {
-      word = WORD_LIST[Math.floor(Math.random() * WORD_LIST.length)];
-    } while (word === secretWord);
+    const word = PRACTICE_WORDS[practiceIdx.current % PRACTICE_WORDS.length];
+    practiceIdx.current += 1;
     setPracticeWord(word);
     setMode("practice");
     setRevealedPositions({});
@@ -1138,7 +1137,7 @@ export default function App() {
     setShowResult(false);
     setShowHelp(false);
     setWrongGuess(false);
-  }, [secretWord]);
+  }, []);
 
   const returnToDaily = useCallback(() => {
     setMode("daily");
