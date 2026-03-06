@@ -1487,12 +1487,13 @@ export default function App() {
               color: T.secondary,
               cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
+              lineHeight: 0,
             }}>
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
-                <rect x="2" y="2" width="5" height="5" rx="1"/>
-                <rect x="2" y="10" width="5" height="5" rx="1"/>
-                <rect x="10" y="2" width="5" height="5" rx="1"/>
-                <rect x="10" y="10" width="5" height="5" rx="1"/>
+              <svg width="20" height="20" viewBox="0 0 17 17" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                <rect x="1" y="1" width="6" height="6" rx="1"/>
+                <rect x="1" y="10" width="6" height="6" rx="1"/>
+                <rect x="10" y="1" width="6" height="6" rx="1"/>
+                <rect x="10" y="10" width="6" height="6" rx="1"/>
               </svg>
             </button>
           </div>
