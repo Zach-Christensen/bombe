@@ -452,7 +452,7 @@ function HowToModal({ onClose }) {
           <ExTile letter="" />
         </div>
         <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
-          Position 3 shows <strong>D</strong> instead of <strong>C</strong>. Letters <strong>B</strong> and <strong>C</strong> were skipped {"\u2014"} they're in the secret word.
+          Position 3 shows <strong>D</strong> instead of <strong>C</strong>. Either <strong>B</strong> or <strong>C</strong> is in the secret word.
         </p>
 
         <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
