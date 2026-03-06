@@ -397,19 +397,147 @@ function StatsModal({ stats, onClose }) {
   );
 }
 
-// --- How To Modal ---
+// --- How To Modal (interactive walkthrough) ---
 function HowToModal({ onClose }) {
-  const ExTile = ({ letter, revealed }) => (
+  const [step, setStep] = useState(0);
+  const TOTAL_STEPS = 5;
+
+  // Demo grid: alphabet minus C, R, I, M, P (secret word "CRIMP")
+  // A B D E F | G H J K L | N O Q S T | U V W XY Z
+  const DEMO_GRID = ["A","B","D","E","F","G","H","J","K","L","N","O","Q","S","T","U","V","W","XY","Z"];
+
+  // Which grid positions are revealed at each step
+  const revealedByStep = [
+    [],             // step 0: all blank
+    [0],            // step 1: reveal pos 0 → "A"
+    [0, 2],         // step 2: reveal pos 2 → "D"
+    [0, 2, 6, 7, 10, 11], // step 3: more reveals
+    [0, 2, 6, 7, 10, 11], // step 4: same grid, show guess tiles
+  ];
+
+  // Guess tiles for step 4
+  const guessLetters = ["C","R","I","M","P"];
+
+  const DemoTile = ({ letter, revealed, highlight, size }) => {
+    const s = size || 36;
+    return (
+      <div style={{
+        width: s, height: s,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        borderRadius: 3,
+        fontSize: s > 36 ? 16 : 13, fontWeight: 700, fontFamily: FONT,
+        background: revealed ? T.accent : "#fff",
+        color: revealed ? "#fff" : "transparent",
+        border: `2px solid ${revealed ? T.accent : T.border}`,
+        transition: "all 0.3s ease",
+        position: "relative",
+      }}>
+        {letter || "\u00A0"}
+        {highlight && (
+          <div style={{
+            position: "absolute", bottom: -8, left: "50%", transform: "translateX(-50)",
+            width: 4, height: 4, borderRadius: 2, background: T.accent,
+          }} />
+        )}
+      </div>
+    );
+  };
+
+  const GuessTile = ({ letter }) => (
     <div style={{
-      width: 44, height: 44,
+      width: 40, height: 40,
       display: "flex", alignItems: "center", justifyContent: "center",
-      borderRadius: 4,
-      fontSize: 18, fontWeight: 700, fontFamily: FONT,
-      background: revealed ? T.accent : "#fff",
-      color: revealed ? "#fff" : "transparent",
-      border: `2px solid ${revealed ? T.accent : T.border}`,
-    }}>{letter || "\u00A0"}</div>
+      borderRadius: 3,
+      fontSize: 16, fontWeight: 700, fontFamily: FONT,
+      color: letter ? T.text : T.secondary,
+      background: letter ? "#fff" : "#f7f8fa",
+      border: letter ? `2px solid ${T.border}` : `2px dashed #c0c4ca`,
+    }}>{letter || ""}</div>
   );
+
+  const revealed = revealedByStep[step] || [];
+
+  // Step dot indicators
+  const Dots = () => (
+    <div style={{ display: "flex", gap: 6, justifyContent: "center", marginBottom: 16 }}>
+      {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+        <div key={i} style={{
+          width: 8, height: 8, borderRadius: 4,
+          background: i === step ? T.accent : T.counterInactive,
+          transition: "background 0.2s",
+        }} />
+      ))}
+    </div>
+  );
+
+  // 4x5 mini grid
+  const MiniGrid = () => (
+    <div style={{
+      display: "grid", gridTemplateColumns: "repeat(5, 1fr)",
+      gap: 3, maxWidth: 200, margin: "0 auto 12px",
+    }}>
+      {DEMO_GRID.map((letter, i) => (
+        <DemoTile key={i} letter={letter} revealed={revealed.includes(i)} />
+      ))}
+    </div>
+  );
+
+  const stepContent = [
+    // Step 0: The Grid
+    <>
+      <MiniGrid />
+      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
+        The alphabet fills a grid {"\u2014"} but <strong>5 letters are missing</strong>. They've been removed because they form the secret word.
+      </p>
+      <p style={{ fontSize: 13, color: T.secondary, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
+        Your job is to figure out which letters are gone.
+      </p>
+    </>,
+    // Step 1: Reveal a Tile
+    <>
+      <MiniGrid />
+      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
+        Tap a tile to <strong>reveal</strong> the letter at that position.
+      </p>
+      <p style={{ fontSize: 14, color: T.text, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
+        Position 1 shows <strong>A</strong> {"\u2014"} the first letter of the alphabet. That's expected, so no letters before A are missing.
+      </p>
+    </>,
+    // Step 2: Spot the Gap
+    <>
+      <MiniGrid />
+      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
+        Position 3 shows <strong style={{ color: T.accent }}>D</strong>, but you'd expect <strong>C</strong> there (A, B, C...).
+      </p>
+      <p style={{ fontSize: 14, color: T.text, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
+        That means <strong>C was removed</strong> {"\u2014"} it's one of the 5 secret letters!
+      </p>
+    </>,
+    // Step 3: Keep Going
+    <>
+      <MiniGrid />
+      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
+        Position 8 shows <strong style={{ color: T.accent }}>J</strong> instead of <strong>I</strong> {"\u2014"} another missing letter!
+      </p>
+      <p style={{ fontSize: 14, color: T.text, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
+        Position 12 shows <strong style={{ color: T.accent }}>N</strong> instead of <strong>M</strong>. Keep revealing tiles to find all 5 gaps.
+      </p>
+    </>,
+    // Step 4: Guess the Word
+    <>
+      <div style={{ display: "flex", gap: 5, justifyContent: "center", margin: "0 auto 12px" }}>
+        {guessLetters.map((l, i) => <GuessTile key={i} letter={l} />)}
+      </div>
+      <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
+        Once you've found the missing letters, type them into the guess tiles below the grid.
+      </p>
+      <p style={{ fontSize: 14, color: T.text, margin: 0, fontFamily: FONT, lineHeight: 1.5 }}>
+        Drag to rearrange and form the word: <strong style={{ color: T.accent }}>CRIMP</strong>!
+      </p>
+    </>,
+  ];
+
+  const stepTitles = ["The Grid", "Reveal a Tile", "Spot the Gap", "Keep Deducing", "Guess the Word"];
 
   return (
     <div style={{
@@ -437,74 +565,57 @@ function HowToModal({ onClose }) {
 
         <h3 style={{
           textAlign: "center", fontSize: 16, fontWeight: 700,
-          color: T.text, margin: "0 0 16px",
+          color: T.text, margin: "0 0 4px",
           fontFamily: FONT, textTransform: "uppercase",
           letterSpacing: 0.5,
         }}>How to Play</h3>
 
-        <p style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.4, color: T.text, margin: "0 0 4px", fontFamily: FONT }}>
-          Find the hidden word in 14 reveals.
-        </p>
-        <p style={{ fontSize: 14, lineHeight: 1.6, color: T.secondary, margin: "0", fontFamily: FONT }}>
-          The secret word's 5 letters are removed from the alphabet. The remaining letters fill the grid, shifting left to close the gaps.
-        </p>
+        <Dots />
 
-        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
+        <p style={{
+          textAlign: "center", fontSize: 13, fontWeight: 700,
+          color: T.accent, margin: "0 0 14px",
+          fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5,
+        }}>{stepTitles[step]}</p>
 
-        <p style={{ fontSize: 13, fontWeight: 700, color: T.text, margin: "0 0 12px", fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5 }}>
-          Examples
-        </p>
-
-        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
-          <ExTile letter="A" revealed />
-          <ExTile letter="" />
-          <ExTile letter="" />
-          <ExTile letter="" />
-          <ExTile letter="" />
+        <div key={step} style={{ minHeight: 160 }}>
+          {stepContent[step]}
         </div>
-        <p style={{ fontSize: 14, color: T.text, margin: "0 0 16px", fontFamily: FONT, lineHeight: 1.5 }}>
-          Tap a tile to <strong>reveal</strong> the letter at that position. Position 1 shows <strong>A</strong> {"\u2014"} that's expected.
-        </p>
 
-        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
-          <ExTile letter="A" revealed />
-          <ExTile letter="" />
-          <ExTile letter="D" revealed />
-          <ExTile letter="" />
-          <ExTile letter="" />
+        {/* Navigation */}
+        <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+          {step > 0 && (
+            <button onClick={() => setStep(step - 1)} style={{
+              padding: "12px 16px",
+              background: "none",
+              border: `1px solid ${T.border}`, borderRadius: 4,
+              color: T.secondary, fontSize: 14, fontWeight: 600,
+              cursor: "pointer", fontFamily: FONT,
+            }}>Back</button>
+          )}
+          <button
+            onClick={() => step < TOTAL_STEPS - 1 ? setStep(step + 1) : onClose()}
+            style={{
+              flex: 1, padding: "12px",
+              background: T.accent,
+              border: "none", borderRadius: 4,
+              color: "#fff", fontSize: 15, fontWeight: 700,
+              cursor: "pointer", fontFamily: FONT,
+              letterSpacing: 0.5,
+            }}
+          >
+            {step < TOTAL_STEPS - 1 ? "Next" : "Got it"}
+          </button>
         </div>
-        <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
-          Position 3 shows <strong>D</strong> instead of <strong>C</strong>. Either <strong>B</strong> or <strong>C</strong> is in the secret word.
-        </p>
 
-        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
-
-        <p style={{ fontSize: 14, color: T.text, margin: "0 0 12px", fontFamily: FONT, lineHeight: 1.5 }}>
-          You have <strong>14 reveals</strong> to deduce all 5 missing letters, then type them into tiles and drag to rearrange.
-        </p>
-
-        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
-
-        <p style={{ fontSize: 14, color: T.text, margin: "0 0 8px", fontFamily: FONT, lineHeight: 1.5 }}>
-          The alphabet has 26 letters but the grid only has <strong>25 tiles</strong>. That's because <strong>X</strong> and <strong>Y</strong> are combined into one <strong>"XY"</strong> tile. If the secret word contains X or Y, that tile will be missing from the grid just like any other letter.
-        </p>
-
-        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
-
-        <p style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0", fontFamily: FONT }}>
-          A new BOMBE will be available each day!
-        </p>
-
-        <button onClick={onClose} style={{
-          width: "100%", padding: "14px", marginTop: 20,
-          background: T.accent,
-          border: "none",
-          borderRadius: 4,
-          color: "#fff", fontSize: 15, fontWeight: 700,
-          cursor: "pointer",
-          fontFamily: FONT,
-          letterSpacing: 0.5,
-        }}>Got it</button>
+        {step === TOTAL_STEPS - 1 && (
+          <>
+            <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0 12px" }} />
+            <p style={{ fontSize: 12, color: T.secondary, margin: 0, fontFamily: FONT, lineHeight: 1.5, textAlign: "center" }}>
+              You have <strong>14 reveals</strong> to find all 5 letters. A new puzzle drops daily!
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
