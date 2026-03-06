@@ -1481,15 +1481,15 @@ export default function App() {
               cursor: "pointer", fontFamily: FONT,
             }}>Give up</button>
             <button onClick={() => setShowCheatSheet(true)} style={{
-              padding: "10px 12px",
+              width: 48, height: 48,
+              padding: 0,
               background: "none",
               border: `1px solid ${T.border}`, borderRadius: 4,
               color: T.secondary,
               cursor: "pointer",
               display: "flex", alignItems: "center", justifyContent: "center",
-              lineHeight: 0,
             }}>
-              <svg width="20" height="20" viewBox="0 0 17 17" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+              <svg style={{ display: "block" }} width="20" height="20" viewBox="0 0 17 17" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
                 <rect x="1" y="1" width="6" height="6" rx="1"/>
                 <rect x="1" y="10" width="6" height="6" rx="1"/>
                 <rect x="10" y="1" width="6" height="6" rx="1"/>
