@@ -641,7 +641,15 @@ export default function App() {
     return saved ? saved.queriesUsed : 0;
   });
 
-  const [guess, setGuess] = useState("");
+  const [guessTiles, setGuessTiles] = useState(["", "", "", "", ""]);
+  const [focusedTile, setFocusedTile] = useState(0);
+  const [dragIdx, setDragIdx] = useState(null);
+  const tileRefs = useRef([]);
+  const guess = guessTiles.join("");
+  const setGuess = (val) => {
+    const arr = val.split("").concat(["","","","",""]).slice(0, 5);
+    setGuessTiles(arr);
+  };
   const [gameOver, setGameOver] = useState(() => {
     const saved = loadDailyState();
     return saved ? saved.gameOver : false;
@@ -660,7 +668,7 @@ export default function App() {
   const [showResult, setShowResult] = useState(false);
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState(loadStats);
-  const inputRef = useRef(null);
+  // inputRef removed — guess tiles use tileRefs
 
   const queriesLeft = MAX_QUERIES - queriesUsed;
 
@@ -729,12 +737,14 @@ export default function App() {
 
     if (newQueries >= MAX_QUERIES) {
       setShowGuessInput(true);
-      setTimeout(() => inputRef.current?.focus(), 100);
+      setFocusedTile(0);
+      setTimeout(() => tileRefs.current[0]?.focus(), 100);
     }
   }, [gameOver, revealedPositions, queriesUsed]);
 
   const handleGuess = useCallback(() => {
-    const g = guess.toUpperCase().trim();
+    if (guessTiles.includes("")) return;
+    const g = guessTiles.join("").toUpperCase();
     if (g.length !== 5) return;
 
     if (g === secretWord) {
@@ -746,7 +756,7 @@ export default function App() {
       newStats.streak += 1;
       newStats.maxStreak = Math.max(newStats.streak, newStats.maxStreak);
       newStats.revealCounts = [...(newStats.revealCounts || []), queriesUsed];
-      newStats.lastDate = getUTCDateString();
+      newStats.lastDate = getEasternDateString();
       setStats(newStats);
       saveStats(newStats);
       setTimeout(() => setShowResult(true), 600);
@@ -759,13 +769,13 @@ export default function App() {
         const newStats = { ...stats };
         newStats.played += 1;
         newStats.streak = 0;
-        newStats.lastDate = getUTCDateString();
+        newStats.lastDate = getEasternDateString();
         setStats(newStats);
         saveStats(newStats);
         setTimeout(() => setShowResult(true), 300);
       }, 800);
     }
-  }, [guess, secretWord, stats]);
+  }, [guessTiles, secretWord, stats]);
 
   const handleGiveUp = useCallback(() => {
     setGameOver(true);
@@ -773,7 +783,7 @@ export default function App() {
     const newStats = { ...stats };
     newStats.played += 1;
     newStats.streak = 0;
-    newStats.lastDate = getUTCDateString();
+    newStats.lastDate = getEasternDateString();
     setStats(newStats);
     saveStats(newStats);
     setTimeout(() => setShowResult(true), 300);
@@ -843,12 +853,53 @@ export default function App() {
         }
       }
       if (showGuessInput && !gameOver) {
-        if (e.key === "Enter") handleGuess();
+        if (e.key === "Enter") { handleGuess(); return; }
+        const key = e.key.toUpperCase();
+        if (key === "BACKSPACE") {
+          e.preventDefault();
+          setGuessTiles(prev => {
+            const next = [...prev];
+            // If current tile is empty, move back first
+            let idx = focusedTile;
+            if (next[idx] === "" && idx > 0) idx = idx - 1;
+            next[idx] = "";
+            setFocusedTile(idx);
+            setTimeout(() => tileRefs.current[idx]?.focus(), 0);
+            return next;
+          });
+          return;
+        }
+        if (key.length === 1 && key >= "A" && key <= "Z") {
+          e.preventDefault();
+          setGuessTiles(prev => {
+            const next = [...prev];
+            next[focusedTile] = key;
+            const nextIdx = Math.min(focusedTile + 1, 4);
+            setFocusedTile(nextIdx);
+            setTimeout(() => tileRefs.current[nextIdx]?.focus(), 0);
+            return next;
+          });
+          return;
+        }
+        if (key === "ARROWLEFT") {
+          e.preventDefault();
+          const idx = Math.max(focusedTile - 1, 0);
+          setFocusedTile(idx);
+          tileRefs.current[idx]?.focus();
+          return;
+        }
+        if (key === "ARROWRIGHT") {
+          e.preventDefault();
+          const idx = Math.min(focusedTile + 1, 4);
+          setFocusedTile(idx);
+          tileRefs.current[idx]?.focus();
+          return;
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [showGuessInput, gameOver, handleReveal, handleGuess, showHelp, showStats, showResult]);
+  }, [showGuessInput, gameOver, handleReveal, handleGuess, showHelp, showStats, showResult, focusedTile]);
 
   const dayNum = getDayNumber();
 
@@ -951,43 +1002,95 @@ export default function App() {
         })}
       </div>
 
-      {/* Guess area */}
+      {/* Guess area — 5 draggable tiles */}
       {showGuessInput && !gameOver && (
         <div style={{
-          width: "100%", maxWidth: 800, padding: "20px 16px 0",
+          width: "100%", maxWidth: 420, padding: "20px 16px 0",
           display: "flex", flexDirection: "column",
           alignItems: "center", gap: 12,
         }}>
-          <div style={{ display: "flex", gap: 8, width: "100%" }}>
-            <input
-              ref={inputRef}
-              type="text"
-              maxLength={5}
-              value={guess}
-              onChange={e => setGuess(e.target.value.toUpperCase().replace(/[^A-Z]/g, ""))}
-              placeholder="GUESS"
-              style={{
-                flex: 1, padding: "14px 16px",
-                background: wrongGuess ? T.errorBg : "#fff",
-                border: wrongGuess ? `2px solid ${T.error}` : `2px solid ${T.border}`,
-                borderRadius: 4, color: T.text,
-                fontSize: 22, fontWeight: 700,
-                letterSpacing: 8, textAlign: "center",
-                fontFamily: FONT,
-                outline: "none",
-                transition: "all 0.3s",
-              }}
-            />
+          <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+            {guessTiles.map((letter, i) => (
+              <div
+                key={i}
+                ref={el => tileRefs.current[i] = el}
+                tabIndex={0}
+                draggable={!!letter}
+                onDragStart={() => setDragIdx(i)}
+                onDragOver={e => e.preventDefault()}
+                onDrop={() => {
+                  if (dragIdx === null || dragIdx === i) return;
+                  setGuessTiles(prev => {
+                    const next = [...prev];
+                    const tmp = next[dragIdx];
+                    next[dragIdx] = next[i];
+                    next[i] = tmp;
+                    return next;
+                  });
+                  setDragIdx(null);
+                }}
+                onDragEnd={() => setDragIdx(null)}
+                onTouchStart={(e) => {
+                  if (!letter) return;
+                  setDragIdx(i);
+                }}
+                onTouchMove={(e) => {
+                  if (dragIdx === null) return;
+                  const touch = e.touches[0];
+                  const el = document.elementFromPoint(touch.clientX, touch.clientY);
+                  if (el && el.dataset && el.dataset.guessIdx !== undefined) {
+                    const targetIdx = +el.dataset.guessIdx;
+                    if (targetIdx !== dragIdx) {
+                      setGuessTiles(prev => {
+                        const next = [...prev];
+                        const tmp = next[dragIdx];
+                        next[dragIdx] = next[targetIdx];
+                        next[targetIdx] = tmp;
+                        return next;
+                      });
+                      setDragIdx(targetIdx);
+                    }
+                  }
+                }}
+                onTouchEnd={() => setDragIdx(null)}
+                onClick={() => {
+                  setFocusedTile(i);
+                  tileRefs.current[i]?.focus();
+                }}
+                onFocus={() => setFocusedTile(i)}
+                data-guess-idx={i}
+                style={{
+                  width: 56, height: 56,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontSize: 24, fontWeight: 700, fontFamily: FONT,
+                  color: letter ? T.text : T.secondary,
+                  background: wrongGuess ? T.errorBg : (dragIdx === i ? "#e8eaed" : T.bg),
+                  border: focusedTile === i
+                    ? `2px solid ${wrongGuess ? T.error : T.accent}`
+                    : `2px solid ${wrongGuess ? T.error : T.border}`,
+                  borderRadius: 4,
+                  cursor: letter ? "grab" : "text",
+                  outline: "none",
+                  transition: "border-color 0.15s, background 0.15s",
+                  userSelect: "none",
+                  WebkitUserSelect: "none",
+                  touchAction: "none",
+                  opacity: dragIdx === i ? 0.5 : 1,
+                }}
+              >
+                {letter || ""}
+              </div>
+            ))}
           </div>
-          <div style={{ display: "flex", gap: 8, width: "100%" }}>
+          <div style={{ display: "flex", gap: 8, width: "100%", maxWidth: 310 }}>
             <button onClick={handleGuess} style={{
               flex: 1, padding: "14px",
-              background: guess.length === 5 ? T.accent : T.disabledBtn,
+              background: guess.length === 5 && !guessTiles.includes("") ? T.accent : T.disabledBtn,
               border: "none",
               borderRadius: 4,
-              color: guess.length === 5 ? "#fff" : T.disabledBtnText,
+              color: guess.length === 5 && !guessTiles.includes("") ? "#fff" : T.disabledBtnText,
               fontSize: 15, fontWeight: 600,
-              cursor: guess.length === 5 ? "pointer" : "default",
+              cursor: guess.length === 5 && !guessTiles.includes("") ? "pointer" : "default",
               transition: "all 0.2s",
               fontFamily: FONT,
             }}>Submit</button>
@@ -1011,7 +1114,8 @@ export default function App() {
           <button
             onClick={() => {
               setShowGuessInput(true);
-              setTimeout(() => inputRef.current?.focus(), 100);
+              setFocusedTile(0);
+              setTimeout(() => tileRefs.current[0]?.focus(), 100);
             }}
             style={{
               flex: 1, padding: "14px",
