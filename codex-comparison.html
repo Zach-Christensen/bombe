@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Codex — Visual Variants Comparison</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #0a0a0a;
+      color: #fff;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      height: 100vh;
+      gap: 2px;
+      background: #222;
+    }
+    .cell {
+      position: relative;
+      overflow: hidden;
+      background: #000;
+    }
+    .label {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 10;
+      padding: 6px 12px;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(4px);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      text-align: center;
+      border-bottom: 1px solid #333;
+    }
+    .label .name { color: #fff; }
+    .label .file { color: #666; margin-left: 8px; font-weight: 400; letter-spacing: 0.5px; }
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    /* Each variant needs its own HTML wrapper to render the JSX.
+       Since these are raw .jsx files (not built), we use srcdoc
+       with Babel standalone + React CDN to render each one. */
+  </style>
+</head>
+<body>
+  <div class="grid">
+    <div class="cell">
+      <div class="label">
+        <span class="name">Intercepted Signal</span>
+        <span class="file">codex-gritty-crt.jsx</span>
+      </div>
+      <iframe id="frame-crt"></iframe>
+    </div>
+    <div class="cell">
+      <div class="label">
+        <span class="name">Glass Cipher</span>
+        <span class="file">codex-sleek-spy.jsx</span>
+      </div>
+      <iframe id="frame-spy"></iframe>
+    </div>
+    <div class="cell">
+      <div class="label">
+        <span class="name">Dossier</span>
+        <span class="file">codex-cold-war.jsx</span>
+      </div>
+      <iframe id="frame-cold"></iframe>
+    </div>
+    <div class="cell">
+      <div class="label">
+        <span class="name">Neon Breach</span>
+        <span class="file">codex-cyberpunk.jsx</span>
+      </div>
+      <iframe id="frame-cyber"></iframe>
+    </div>
+  </div>
+
+  <script>
+    // Each iframe loads the JSX variant via Babel standalone + React from CDN.
+    // We fetch the .jsx source, then build an srcdoc that compiles and renders it.
+    const variants = [
+      { id: 'frame-crt', file: 'codex-gritty-crt.jsx' },
+      { id: 'frame-spy', file: 'codex-sleek-spy.jsx' },
+      { id: 'frame-cold', file: 'codex-cold-war.jsx' },
+      { id: 'frame-cyber', file: 'codex-cyberpunk.jsx' },
+    ];
+
+    variants.forEach(async ({ id, file }) => {
+      try {
+        const resp = await fetch(file);
+        let src = await resp.text();
+        // Remove the import statement (React will be global from CDN)
+        src = src.replace(/^import\s+\{[^}]+\}\s+from\s+["']react["'];?\s*/m, '');
+        // Remove export default — we'll call it directly
+        src = src.replace(/export\s+default\s+/, '');
+
+        const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8"/>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { overflow-y: auto; overflow-x: hidden; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"><\/script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"><\/script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>
+  <script type="text/babel" data-type="module">
+    const { useState, useEffect, useCallback, useRef } = React;
+    ${src}
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(React.createElement(App));
+  <\/script>
+</body>
+</html>`;
+
+        document.getElementById(id).srcdoc = html;
+      } catch (e) {
+        document.getElementById(id).srcdoc = `<div style="color:red;padding:20px;">Failed to load ${file}: ${e.message}</div>`;
+      }
+    });
+  </script>
+</body>
+</html>

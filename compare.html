@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Codex — All Variants</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #0a0a0a; color: #fff; font-family: system-ui, sans-serif; height: 100vh; overflow: hidden; }
+      .grid { display: grid; grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr; height: 100vh; gap: 2px; background: #222; }
+      .cell { position: relative; overflow: hidden; background: #000; }
+      .label { position: absolute; top: 0; left: 0; right: 0; z-index: 10; padding: 6px 12px; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); font-size: 11px; font-weight: 600; letter-spacing: 2px; text-transform: uppercase; text-align: center; border-bottom: 1px solid #333; }
+      .label .name { color: #fff; }
+      .label .file { color: #666; margin-left: 8px; font-weight: 400; letter-spacing: 0.5px; }
+      iframe { width: 100%; height: 100%; border: none; }
+    </style>
+  </head>
+  <body>
+    <div class="grid">
+      <div class="cell">
+        <div class="label"><span class="name">Dusk</span><span class="file">Purple</span></div>
+        <iframe src="/dusk.html"></iframe>
+      </div>
+      <div class="cell">
+        <div class="label"><span class="name">Reef</span><span class="file">Teal</span></div>
+        <iframe src="/reef.html"></iframe>
+      </div>
+      <div class="cell">
+        <div class="label"><span class="name">Ember</span><span class="file">Terracotta</span></div>
+        <iframe src="/ember.html"></iframe>
+      </div>
+      <div class="cell">
+        <div class="label"><span class="name">Slate</span><span class="file">Dark</span></div>
+        <iframe src="/slate.html"></iframe>
+      </div>
+    </div>
+  </body>
+</html>
