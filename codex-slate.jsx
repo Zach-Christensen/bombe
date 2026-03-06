@@ -900,7 +900,22 @@ export default function App() {
     const saved = loadDailyState();
     return !saved;
   });
-  const [crossedLetters, setCrossedLetters] = useState(new Set());
+  const [crossedLetters, setCrossedLetters] = useState(() => {
+    const saved = loadDailyState();
+    if (saved && saved.revealedPositions) {
+      const sw = getDailyWord();
+      const secretSet = new Set(sw.split(""));
+      const grid = ALPHABET.filter(entry => !entry.split("").some(ch => secretSet.has(ch)));
+      const crossed = new Set();
+      Object.keys(saved.revealedPositions).forEach(idx => {
+        const letter = grid[parseInt(idx)];
+        if (letter) letter.split("").forEach(ch => crossed.add(ch));
+      });
+      return crossed;
+    }
+    return new Set();
+  });
+  const [showCheatSheet, setShowCheatSheet] = useState(false);
   const [showResult, setShowResult] = useState(false);
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState(loadStats);
@@ -963,11 +978,21 @@ export default function App() {
     setRevealedPositions(newRevealed);
     setQueriesUsed(newQueries);
 
+    // Auto-cross the revealed letter on the cheat sheet
+    const letter = shiftedGrid[position];
+    if (letter) {
+      setCrossedLetters(prev => {
+        const next = new Set(prev);
+        letter.split("").forEach(ch => next.add(ch));
+        return next;
+      });
+    }
+
     if (newQueries >= MAX_QUERIES) {
       setFocusedTile(0);
       setTimeout(() => tileRefs.current[0]?.focus(), 100);
     }
-  }, [gameOver, revealedPositions, queriesUsed]);
+  }, [gameOver, revealedPositions, queriesUsed, shiftedGrid]);
 
   const handleGuess = useCallback(() => {
     if (guessTiles.includes("")) return;
@@ -1455,7 +1480,69 @@ export default function App() {
               color: T.secondary, fontSize: 15, fontWeight: 600,
               cursor: "pointer", fontFamily: FONT,
             }}>Give up</button>
+            <button onClick={() => setShowCheatSheet(s => !s)} style={{
+              padding: "14px",
+              background: showCheatSheet ? "#f0f4f8" : "none",
+              border: `1px solid ${showCheatSheet ? T.accent : T.border}`, borderRadius: 4,
+              color: showCheatSheet ? T.accent : T.secondary,
+              fontSize: 12, fontWeight: 700,
+              cursor: "pointer", fontFamily: FONT,
+              letterSpacing: 0.5,
+            }}>ABC</button>
           </div>
+
+          {/* Inline cheat sheet */}
+          {showCheatSheet && (
+            <div style={{ width: "100%", maxWidth: 360, paddingTop: 8 }}>
+              <div style={{
+                display: "grid", gridTemplateColumns: "repeat(9, 1fr)",
+                gap: 4,
+              }}>
+                {"ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("").map((letter, i) => {
+                  const crossed = crossedLetters.has(letter);
+                  return (
+                    <button
+                      key={letter}
+                      onClick={() => setCrossedLetters(prev => {
+                        const next = new Set(prev);
+                        if (next.has(letter)) next.delete(letter);
+                        else next.add(letter);
+                        return next;
+                      })}
+                      style={{
+                        display: "flex", flexDirection: "column",
+                        alignItems: "center", justifyContent: "center",
+                        padding: "4px 0",
+                        borderRadius: 3,
+                        border: `1.5px solid ${crossed ? "#d0d4da" : "#e0e0e0"}`,
+                        background: crossed ? "#f0f0f0" : "#fff",
+                        cursor: "pointer",
+                        opacity: crossed ? 0.35 : 1,
+                        transition: "all 0.15s",
+                      }}
+                    >
+                      <span style={{
+                        fontSize: 13, fontWeight: 700, fontFamily: FONT,
+                        color: crossed ? "#999" : T.text,
+                        textDecoration: crossed ? "line-through" : "none",
+                      }}>{letter}</span>
+                      <span style={{
+                        fontSize: 8, fontWeight: 600, fontFamily: FONT,
+                        color: crossed ? "#c0c4ca" : "#999",
+                      }}>{i + 1}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div style={{ textAlign: "center", marginTop: 6 }}>
+                <button onClick={() => setCrossedLetters(new Set())} style={{
+                  background: "none", border: "none",
+                  color: T.secondary, fontSize: 11, cursor: "pointer",
+                  fontFamily: FONT, textDecoration: "underline", padding: 2,
+                }}>Reset</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
