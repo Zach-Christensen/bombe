@@ -537,6 +537,11 @@ export default function App() {
     style.textContent = `
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
 
+      *, *::before, *::after { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; }
+      html { height: 100%; }
+      body { min-height: 100%; }
+
       @keyframes codex-modal-slide {
         0% { transform: translateY(-20px); opacity: 0; }
         100% { transform: translateY(0); opacity: 1; }
