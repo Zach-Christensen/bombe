@@ -676,7 +676,6 @@ export default function App() {
   const [showResult, setShowResult] = useState(false);
   const [copied, setCopied] = useState(false);
   const [stats, setStats] = useState(loadStats);
-  const hiddenInputRef = useRef(null);
 
   const queriesLeft = MAX_QUERIES - queriesUsed;
 
@@ -1007,89 +1006,26 @@ export default function App() {
         })}
       </div>
 
-      {/* Guess area — 5 draggable tiles + hidden input for mobile keyboard */}
+      {/* Guess area — 5 tile inputs with drag support */}
       {!gameOver && (
         <div style={{
           width: "100%", maxWidth: 420, padding: "20px 16px 0",
           display: "flex", flexDirection: "column",
           alignItems: "center", gap: 12,
         }}>
-          {/* Hidden input to trigger mobile keyboard */}
-          <input
-            ref={hiddenInputRef}
-            style={{
-              position: "absolute", opacity: 0, width: 1, height: 1,
-              pointerEvents: "none",
-            }}
-            autoComplete="off"
-            autoCorrect="off"
-            autoCapitalize="characters"
-            spellCheck={false}
-            inputMode="text"
-            onKeyDown={(e) => {
-              e.stopPropagation(); // prevent global handler from doubling input
-              const key = e.key.toUpperCase();
-              if (key === "UNIDENTIFIED" || key === "PROCESS") return; // let onInput handle it
-              if (key === "BACKSPACE") {
-                e.preventDefault();
-                setGuessTiles(prev => {
-                  const next = [...prev];
-                  let idx = focusedTile;
-                  if (next[idx] === "" && idx > 0) idx = idx - 1;
-                  next[idx] = "";
-                  setFocusedTile(idx);
-                  return next;
-                });
-                hiddenInputRef.current.value = "";
-              } else if (key === "ENTER") {
-                handleGuess();
-              } else if (key.length === 1 && key >= "A" && key <= "Z") {
-                e.preventDefault();
-                setGuessTiles(prev => {
-                  const next = [...prev];
-                  next[focusedTile] = key;
-                  const nextIdx = Math.min(focusedTile + 1, 4);
-                  setFocusedTile(nextIdx);
-                  return next;
-                });
-                hiddenInputRef.current.value = "";
-              }
-            }}
-            onBeforeInput={(e) => {
-              // Mobile keyboards: handle input directly, prevent default to avoid duplication
-              const char = (e.data || "").toUpperCase();
-              if (char.length === 1 && char >= "A" && char <= "Z") {
-                e.preventDefault();
-                setGuessTiles(prev => {
-                  const next = [...prev];
-                  next[focusedTile] = char;
-                  const nextIdx = Math.min(focusedTile + 1, 4);
-                  setFocusedTile(nextIdx);
-                  return next;
-                });
-                hiddenInputRef.current.value = "";
-              }
-            }}
-            onFocus={() => setGuessFocused(true)}
-            onBlur={() => setGuessFocused(false)}
-          />
           <div ref={guessRowRef} style={{ display: "flex", gap: 6, justifyContent: "center", position: "relative" }}>
             {guessTiles.map((letter, i) => {
               const isDragging = dragIdx === i && dragPos;
               const isDropTarget = dropTarget === i && dragIdx !== null && dragIdx !== i;
+              const isFocused = guessFocused && focusedTile === i && !isDragging;
               return (
                 <div
                   key={i}
                   ref={el => tileRefs.current[i] = el}
                   data-guess-idx={i}
                   onPointerDown={(e) => {
-                    if (!letter) {
-                      setFocusedTile(i);
-                      setGuessFocused(true);
-                      hiddenInputRef.current?.focus();
-                      return;
-                    }
-                    // Don't preventDefault yet — record pending drag
+                    if (!letter) return; // let the input handle tap natively
+                    // Record pending drag for filled tiles
                     pendingDragRef.current = {
                       idx: i,
                       startX: e.clientX,
@@ -1099,23 +1035,22 @@ export default function App() {
                     tileRefs.current[i].setPointerCapture(e.pointerId);
                   }}
                   onPointerMove={(e) => {
-                    // Check if we should start dragging (moved > 8px)
                     const pending = pendingDragRef.current;
                     if (pending && dragIdx === null) {
                       const dx = e.clientX - pending.startX;
                       const dy = e.clientY - pending.startY;
                       if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-                        // Start drag
                         setDragIdx(pending.idx);
                         setDragPos({ x: e.clientX, y: e.clientY });
                         setDropTarget(null);
                         pendingDragRef.current = null;
+                        // Blur the input so keyboard hides during drag
+                        document.activeElement?.blur();
                       }
                       return;
                     }
                     if (dragIdx === null) return;
                     setDragPos({ x: e.clientX, y: e.clientY });
-                    // Find which tile we're over (use elementFromPoint with pointer capture released)
                     let found = null;
                     for (let j = 0; j < 5; j++) {
                       const el = tileRefs.current[j];
@@ -1128,11 +1063,10 @@ export default function App() {
                     }
                     setDropTarget(found);
                   }}
-                  onPointerUp={(e) => {
+                  onPointerUp={() => {
                     const wasPending = pendingDragRef.current;
                     pendingDragRef.current = null;
                     if (dragIdx !== null) {
-                      // Finish drag — swap if over a different tile
                       if (dropTarget !== null && dropTarget !== dragIdx) {
                         setGuessTiles(prev => {
                           const next = [...prev];
@@ -1145,12 +1079,8 @@ export default function App() {
                       setDragIdx(null);
                       setDragPos(null);
                       setDropTarget(null);
-                    } else if (wasPending) {
-                      // Was a tap (never moved enough to start drag) — focus for typing
-                      setFocusedTile(i);
-                      setGuessFocused(true);
-                      hiddenInputRef.current?.focus();
                     }
+                    // If it was just a tap on a filled tile, the native input click will handle focus
                   }}
                   onPointerCancel={() => {
                     pendingDragRef.current = null;
@@ -1160,29 +1090,106 @@ export default function App() {
                   }}
                   style={{
                     width: 56, height: 56,
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 24, fontWeight: 700, fontFamily: FONT,
-                    color: isDragging ? "transparent" : (letter ? T.text : T.secondary),
+                    position: "relative",
+                    borderRadius: 4,
                     background: wrongGuess ? T.errorBg
                       : isDropTarget ? "#dbeafe"
                       : isDragging ? "#f0f0f0"
                       : letter ? T.bg
                       : "#f7f8fa",
                     border: isDropTarget ? `2px dashed ${T.accent}`
-                      : (guessFocused && focusedTile === i && !isDragging)
+                      : isFocused
                         ? `2px solid ${wrongGuess ? T.error : T.accent}`
                         : letter ? `2px solid ${wrongGuess ? T.error : T.border}`
                         : `2px dashed ${wrongGuess ? T.error : "#c0c4ca"}`,
-                    borderRadius: 4,
-                    cursor: letter ? "grab" : "text",
-                    outline: "none",
                     transition: isDragging ? "none" : "border-color 0.15s, background 0.15s",
-                    userSelect: "none",
-                    WebkitUserSelect: "none",
                     touchAction: "none",
                   }}
                 >
-                  {isDragging ? "" : (letter || "")}
+                  <input
+                    type="text"
+                    readOnly={isDragging}
+                    value={isDragging ? "" : letter}
+                    autoComplete="off"
+                    autoCorrect="off"
+                    autoCapitalize="characters"
+                    spellCheck={false}
+                    inputMode="text"
+                    onFocus={() => {
+                      setFocusedTile(i);
+                      setGuessFocused(true);
+                    }}
+                    onBlur={() => setGuessFocused(false)}
+                    onKeyDown={(e) => {
+                      e.stopPropagation();
+                      const key = e.key.toUpperCase();
+                      if (key === "UNIDENTIFIED" || key === "PROCESS") return;
+                      if (key === "BACKSPACE") {
+                        e.preventDefault();
+                        setGuessTiles(prev => {
+                          const next = [...prev];
+                          let idx = i;
+                          if (next[idx] === "" && idx > 0) idx = idx - 1;
+                          next[idx] = "";
+                          setFocusedTile(idx);
+                          setTimeout(() => tileRefs.current[idx]?.querySelector("input")?.focus(), 0);
+                          return next;
+                        });
+                      } else if (key === "ENTER") {
+                        handleGuess();
+                      } else if (key === "ARROWLEFT") {
+                        e.preventDefault();
+                        const idx = Math.max(i - 1, 0);
+                        setFocusedTile(idx);
+                        tileRefs.current[idx]?.querySelector("input")?.focus();
+                      } else if (key === "ARROWRIGHT") {
+                        e.preventDefault();
+                        const idx = Math.min(i + 1, 4);
+                        setFocusedTile(idx);
+                        tileRefs.current[idx]?.querySelector("input")?.focus();
+                      } else if (key.length === 1 && key >= "A" && key <= "Z") {
+                        e.preventDefault();
+                        setGuessTiles(prev => {
+                          const next = [...prev];
+                          next[i] = key;
+                          const nextIdx = Math.min(i + 1, 4);
+                          setFocusedTile(nextIdx);
+                          setTimeout(() => tileRefs.current[nextIdx]?.querySelector("input")?.focus(), 0);
+                          return next;
+                        });
+                      }
+                    }}
+                    onBeforeInput={(e) => {
+                      const char = (e.data || "").toUpperCase();
+                      if (char.length >= 1 && char[0] >= "A" && char[0] <= "Z") {
+                        e.preventDefault();
+                        const key = char[0];
+                        setGuessTiles(prev => {
+                          const next = [...prev];
+                          next[i] = key;
+                          const nextIdx = Math.min(i + 1, 4);
+                          setFocusedTile(nextIdx);
+                          setTimeout(() => tileRefs.current[nextIdx]?.querySelector("input")?.focus(), 0);
+                          return next;
+                        });
+                      }
+                    }}
+                    style={{
+                      width: "100%", height: "100%",
+                      position: "absolute", top: 0, left: 0,
+                      border: "none", outline: "none",
+                      background: "transparent",
+                      color: isDragging ? "transparent" : (letter ? T.text : T.secondary),
+                      fontSize: 24, fontWeight: 700, fontFamily: FONT,
+                      textAlign: "center",
+                      caretColor: "transparent",
+                      userSelect: "none",
+                      WebkitUserSelect: "none",
+                      cursor: letter ? "grab" : "text",
+                      padding: 0,
+                      borderRadius: 4,
+                    }}
+                  />
                 </div>
               );
             })}
