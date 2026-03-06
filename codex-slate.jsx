@@ -649,9 +649,9 @@ export default function App() {
   const [guessTiles, setGuessTiles] = useState(["", "", "", "", ""]);
   const [focusedTile, setFocusedTile] = useState(0);
   const [dragIdx, setDragIdx] = useState(null);
-  const [dragPos, setDragPos] = useState(null); // {x, y} screen coords of floating tile
-  const [dropTarget, setDropTarget] = useState(null); // index being hovered over
-  const dragOffsetRef = useRef({ x: 0, y: 0 }); // offset from tile center to touch point
+  const [dragPos, setDragPos] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
+  const pendingDragRef = useRef(null); // { idx, startX, startY, pointerId }
   const tileRefs = useRef([]);
   const guessRowRef = useRef(null);
   const guess = guessTiles.join("");
@@ -1084,30 +1084,38 @@ export default function App() {
                   data-guess-idx={i}
                   onPointerDown={(e) => {
                     if (!letter) {
-                      // Empty tile — just focus for typing
                       setFocusedTile(i);
                       setGuessFocused(true);
                       hiddenInputRef.current?.focus();
                       return;
                     }
-                    // Start drag
-                    e.preventDefault();
-                    const rect = tileRefs.current[i].getBoundingClientRect();
-                    dragOffsetRef.current = {
-                      x: e.clientX - rect.left - rect.width / 2,
-                      y: e.clientY - rect.top - rect.height / 2,
+                    // Don't preventDefault yet — record pending drag
+                    pendingDragRef.current = {
+                      idx: i,
+                      startX: e.clientX,
+                      startY: e.clientY,
+                      pointerId: e.pointerId,
                     };
-                    setDragIdx(i);
-                    setDragPos({ x: e.clientX, y: e.clientY });
-                    setDropTarget(null);
                     tileRefs.current[i].setPointerCapture(e.pointerId);
                   }}
                   onPointerMove={(e) => {
-                    if (dragIdx === null || dragIdx !== i) return;
+                    // Check if we should start dragging (moved > 8px)
+                    const pending = pendingDragRef.current;
+                    if (pending && dragIdx === null) {
+                      const dx = e.clientX - pending.startX;
+                      const dy = e.clientY - pending.startY;
+                      if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+                        // Start drag
+                        setDragIdx(pending.idx);
+                        setDragPos({ x: e.clientX, y: e.clientY });
+                        setDropTarget(null);
+                        pendingDragRef.current = null;
+                      }
+                      return;
+                    }
+                    if (dragIdx === null) return;
                     setDragPos({ x: e.clientX, y: e.clientY });
-                    // Find which tile we're over
-                    const row = guessRowRef.current;
-                    if (!row) return;
+                    // Find which tile we're over (use elementFromPoint with pointer capture released)
                     let found = null;
                     for (let j = 0; j < 5; j++) {
                       const el = tileRefs.current[j];
@@ -1121,27 +1129,31 @@ export default function App() {
                     setDropTarget(found);
                   }}
                   onPointerUp={(e) => {
-                    if (dragIdx === null) return;
-                    // Perform swap if over a different tile
-                    if (dropTarget !== null && dropTarget !== dragIdx) {
-                      setGuessTiles(prev => {
-                        const next = [...prev];
-                        const tmp = next[dragIdx];
-                        next[dragIdx] = next[dropTarget];
-                        next[dropTarget] = tmp;
-                        return next;
-                      });
-                    } else if (dropTarget === null && dragIdx === i) {
-                      // Tap (no real drag) — focus for typing
+                    const wasPending = pendingDragRef.current;
+                    pendingDragRef.current = null;
+                    if (dragIdx !== null) {
+                      // Finish drag — swap if over a different tile
+                      if (dropTarget !== null && dropTarget !== dragIdx) {
+                        setGuessTiles(prev => {
+                          const next = [...prev];
+                          const tmp = next[dragIdx];
+                          next[dragIdx] = next[dropTarget];
+                          next[dropTarget] = tmp;
+                          return next;
+                        });
+                      }
+                      setDragIdx(null);
+                      setDragPos(null);
+                      setDropTarget(null);
+                    } else if (wasPending) {
+                      // Was a tap (never moved enough to start drag) — focus for typing
                       setFocusedTile(i);
                       setGuessFocused(true);
                       hiddenInputRef.current?.focus();
                     }
-                    setDragIdx(null);
-                    setDragPos(null);
-                    setDropTarget(null);
                   }}
                   onPointerCancel={() => {
+                    pendingDragRef.current = null;
                     setDragIdx(null);
                     setDragPos(null);
                     setDropTarget(null);
