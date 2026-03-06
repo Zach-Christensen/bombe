@@ -170,26 +170,26 @@ const ALPHABET = [
 ];
 
 const T = {
-  bg: "#eff6ff",
-  text: "#1e3a5f",
-  secondary: "#3b82f6",
-  border: "#bfdbfe",
-  tileUnrevealed: "#dbeafe",
-  tileRevealedBg: "#fff",
-  tileRevealedBorder: "#60a5fa",
-  tileRevealedText: "#1e3a5f",
+  bg: "#ffffff",
+  text: "#1a1a1b",
+  secondary: "#787c7e",
+  border: "#d3d6da",
+  tileUnrevealed: "#ffffff",
+  tileRevealedBg: "#2563eb",
+  tileRevealedBorder: "#2563eb",
+  tileRevealedText: "#ffffff",
   accent: "#2563eb",
-  warning: "#f59e0b",
-  error: "#ef4444",
-  errorBg: "#fef2f2",
+  warning: "#c9b458",
+  error: "#c94a4a",
+  errorBg: "#fff3f3",
   counterActive: "#2563eb",
-  counterInactive: "#bfdbfe",
-  disabledBtn: "#bfdbfe",
-  disabledBtnText: "#3b82f6",
-  modalOverlay: "rgba(30,58,95,0.35)",
-  modalBg: "#fff",
-  modalShadow: "0 4px 24px rgba(37,99,235,0.15)",
-  tileHoverBg: "#bfdbfe",
+  counterInactive: "#d3d6da",
+  disabledBtn: "#d3d6da",
+  disabledBtnText: "#787c7e",
+  modalOverlay: "rgba(0,0,0,0.5)",
+  modalBg: "#ffffff",
+  modalShadow: "0 4px 23px 0 rgba(0,0,0,0.2)",
+  tileHoverBg: "#ededed",
 };
 
 // --- Daily word helpers ---
@@ -237,16 +237,16 @@ function saveDailyState(state) {
   } catch {}
 }
 
-// --- NYT Theme constants ---
+// --- Theme constants ---
 const FONT = "'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif";
 
 // --- Tile component ---
-function Tile({ letter, isRevealed, onClick, disabled, index }) {
+function Tile({ letter, isRevealed, onClick, disabled }) {
   let bg, border, color, content;
   if (!isRevealed) {
     bg = T.tileUnrevealed;
-    border = T.tileUnrevealed;
-    color = T.tileUnrevealed;
+    border = T.border;
+    color = "transparent";
     content = "";
   } else {
     bg = T.tileRevealedBg;
@@ -264,10 +264,10 @@ function Tile({ letter, isRevealed, onClick, disabled, index }) {
         width: "100%",
         aspectRatio: "1",
         border: `2px solid ${border}`,
-        borderRadius: 8,
+        borderRadius: 4,
         background: bg,
         color: color,
-        fontSize: 20,
+        fontSize: 22,
         fontFamily: FONT,
         fontWeight: 700,
         cursor: disabled ? "default" : "pointer",
@@ -289,14 +289,32 @@ function Tile({ letter, isRevealed, onClick, disabled, index }) {
 function StatsModal({ stats, onClose }) {
   const winPct = stats.played > 0 ? Math.round((stats.won / stats.played) * 100) : 0;
   const rc = stats.revealCounts || [];
-  const avgReveals = rc.length > 0 ? (rc.reduce((a, b) => a + b, 0) / rc.length).toFixed(1) : "—";
+  const avgReveals = rc.length > 0 ? (rc.reduce((a, b) => a + b, 0) / rc.length).toFixed(1) : "\u2014";
   const statItems = [
     { label: "Played", value: stats.played },
     { label: "Win %", value: winPct },
-    { label: "Streak", value: stats.streak },
-    { label: "Best", value: stats.maxStreak },
-    { label: "Avg Reveals", value: avgReveals },
+    { label: "Current\nStreak", value: stats.streak },
+    { label: "Max\nStreak", value: stats.maxStreak },
+    { label: "Avg\nReveals", value: avgReveals },
   ];
+
+  const [countdown, setCountdown] = useState("");
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const diff = tomorrow - now;
+      const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
+      const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
+      const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
+      setCountdown(`${h}:${m}:${s}`);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div style={{
@@ -307,40 +325,51 @@ function StatsModal({ stats, onClose }) {
       <div onClick={e => e.stopPropagation()} className="codex-modal-enter" style={{
         background: T.modalBg,
         borderRadius: 8,
-        padding: "32px 28px",
-        maxWidth: 340,
+        padding: "20px 24px 24px",
+        maxWidth: 360,
         width: "90%",
         boxShadow: T.modalShadow,
         position: "relative",
       }}>
+        <button onClick={onClose} style={{
+          position: "absolute", top: 16, right: 16,
+          background: "none", border: "none",
+          fontSize: 18, color: T.secondary, cursor: "pointer",
+          padding: 4, lineHeight: 1, fontFamily: FONT,
+        }}>{"\u2715"}</button>
+
         <h3 style={{
-          textAlign: "center", fontSize: 18, fontWeight: 700,
-          color: T.text, margin: "0 0 24px",
-          fontFamily: FONT,
+          textAlign: "center", fontSize: 16, fontWeight: 700,
+          color: T.text, margin: "0 0 20px",
+          fontFamily: FONT, textTransform: "uppercase",
+          letterSpacing: 0.5,
         }}>Statistics</h3>
-        <div style={{ display: "flex", justifyContent: "space-around", marginBottom: 28 }}>
+
+        <div style={{ display: "flex", justifyContent: "space-around", marginBottom: 20 }}>
           {statItems.map(s => (
-            <div key={s.label} style={{ textAlign: "center" }}>
+            <div key={s.label} style={{ textAlign: "center", flex: 1 }}>
               <div style={{
-                fontSize: 32, fontWeight: 700, color: T.text,
+                fontSize: 36, fontWeight: 400, color: T.text,
                 fontFamily: FONT,
               }}>{s.value}</div>
               <div style={{
-                fontSize: 12, color: T.secondary, marginTop: 4,
-                fontFamily: FONT,
+                fontSize: 11, color: T.text, marginTop: 2,
+                fontFamily: FONT, whiteSpace: "pre-line",
               }}>{s.label}</div>
             </div>
           ))}
         </div>
-        <button onClick={onClose} style={{
-          width: "100%", padding: "14px",
-          background: T.bg,
-          border: `1px solid ${T.border}`,
-          borderRadius: 4,
-          color: T.text, fontSize: 14, fontWeight: 600,
-          cursor: "pointer",
-          fontFamily: FONT,
-        }}>Close</button>
+
+        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
+
+        <div style={{ textAlign: "center" }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: T.text, fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 8 }}>
+            Next Bombe
+          </div>
+          <div style={{ fontSize: 36, fontWeight: 400, color: T.text, fontFamily: FONT, fontVariantNumeric: "tabular-nums" }}>
+            {countdown}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -348,6 +377,18 @@ function StatsModal({ stats, onClose }) {
 
 // --- How To Modal ---
 function HowToModal({ onClose }) {
+  const ExTile = ({ letter, revealed }) => (
+    <div style={{
+      width: 44, height: 44,
+      display: "flex", alignItems: "center", justifyContent: "center",
+      borderRadius: 4,
+      fontSize: 18, fontWeight: 700, fontFamily: FONT,
+      background: revealed ? T.accent : "#fff",
+      color: revealed ? "#fff" : "transparent",
+      border: `2px solid ${revealed ? T.accent : T.border}`,
+    }}>{letter || "\u00A0"}</div>
+  );
+
   return (
     <div style={{
       position: "fixed", inset: 0, background: T.modalOverlay,
@@ -357,50 +398,82 @@ function HowToModal({ onClose }) {
       <div onClick={e => e.stopPropagation()} className="codex-modal-enter" style={{
         background: T.modalBg,
         borderRadius: 8,
-        padding: "32px 24px",
+        padding: "20px 24px 24px",
         maxWidth: 400,
         width: "90%",
         boxShadow: T.modalShadow,
         position: "relative",
+        maxHeight: "85vh",
+        overflowY: "auto",
       }}>
-        <h3 style={{
-          textAlign: "center", fontSize: 18, fontWeight: 700,
-          color: T.text, margin: "0 0 20px",
-          fontFamily: FONT,
-        }}>How to Play</h3>
-        <div style={{
-          fontSize: 15, lineHeight: 1.7, color: T.text,
-          fontFamily: FONT,
-        }}>
-          <p style={{ margin: "0 0 14px" }}>
-            A secret 5-letter word is hidden. Its letters have been removed from
-            the alphabet, and the remaining letters shift left to fill the gaps.
-          </p>
-          <p style={{ margin: "0 0 14px" }}>
-            The grid shows 20 blank tiles. Tap any tile to reveal which letter
-            now occupies that position.
-          </p>
-          <p style={{ margin: "0 0 14px" }}>
-            Compare the revealed letter to what you'd expect at that position.
-            If a letter is skipped, it's in the secret word.
-          </p>
-          <p style={{ margin: "0 0 14px" }}>
-            You have <strong>10 reveals</strong> to deduce all 5 missing letters.
-            Then unscramble them to guess the word.
-          </p>
-          <p style={{ margin: "0 0 4px", color: T.secondary, fontSize: 13 }}>
-            Tip: revealing tiles near the middle of the grid helps you eliminate
-            ranges efficiently.
-          </p>
-        </div>
         <button onClick={onClose} style={{
-          width: "100%", padding: "14px", marginTop: 16,
+          position: "absolute", top: 16, right: 16,
+          background: "none", border: "none",
+          fontSize: 18, color: T.secondary, cursor: "pointer",
+          padding: 4, lineHeight: 1, fontFamily: FONT,
+        }}>{"\u2715"}</button>
+
+        <h3 style={{
+          textAlign: "center", fontSize: 16, fontWeight: 700,
+          color: T.text, margin: "0 0 16px",
+          fontFamily: FONT, textTransform: "uppercase",
+          letterSpacing: 0.5,
+        }}>How to Play</h3>
+
+        <p style={{ fontSize: 16, fontWeight: 700, lineHeight: 1.4, color: T.text, margin: "0 0 4px", fontFamily: FONT }}>
+          Find the hidden word in 10 reveals.
+        </p>
+        <p style={{ fontSize: 14, lineHeight: 1.6, color: T.secondary, margin: "0", fontFamily: FONT }}>
+          The secret word's 5 letters are removed from the alphabet. The remaining letters fill the grid, shifting left to close the gaps.
+        </p>
+
+        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
+
+        <p style={{ fontSize: 13, fontWeight: 700, color: T.text, margin: "0 0 12px", fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5 }}>
+          Examples
+        </p>
+
+        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+          <ExTile letter="A" revealed />
+          <ExTile letter="" />
+          <ExTile letter="" />
+          <ExTile letter="" />
+          <ExTile letter="" />
+        </div>
+        <p style={{ fontSize: 14, color: T.text, margin: "0 0 16px", fontFamily: FONT, lineHeight: 1.5 }}>
+          Tap a tile to <strong>reveal</strong> the letter at that position. Position 1 shows <strong>A</strong> {"\u2014"} that's expected.
+        </p>
+
+        <div style={{ display: "flex", gap: 4, marginBottom: 8 }}>
+          <ExTile letter="A" revealed />
+          <ExTile letter="" />
+          <ExTile letter="D" revealed />
+          <ExTile letter="" />
+          <ExTile letter="" />
+        </div>
+        <p style={{ fontSize: 14, color: T.text, margin: "0 0 4px", fontFamily: FONT, lineHeight: 1.5 }}>
+          Position 3 shows <strong>D</strong> instead of <strong>C</strong>. Letters <strong>B</strong> and <strong>C</strong> were skipped {"\u2014"} they're in the secret word.
+        </p>
+
+        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
+
+        <p style={{ fontSize: 14, color: T.text, margin: "0 0 8px", fontFamily: FONT, lineHeight: 1.5 }}>
+          You have <strong>10 reveals</strong> to deduce all 5 missing letters, then unscramble them to guess the word.
+        </p>
+
+        <p style={{ fontSize: 14, fontWeight: 700, color: T.text, margin: "0", fontFamily: FONT }}>
+          A new BOMBE will be available each day!
+        </p>
+
+        <button onClick={onClose} style={{
+          width: "100%", padding: "14px", marginTop: 20,
           background: T.accent,
           border: "none",
           borderRadius: 4,
-          color: "#fff", fontSize: 14, fontWeight: 600,
+          color: "#fff", fontSize: 15, fontWeight: 700,
           cursor: "pointer",
           fontFamily: FONT,
+          letterSpacing: 0.5,
         }}>Got it</button>
       </div>
     </div>
@@ -409,6 +482,24 @@ function HowToModal({ onClose }) {
 
 // --- Result Modal ---
 function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats }) {
+  const [countdown, setCountdown] = useState("");
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      const diff = tomorrow - now;
+      const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
+      const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
+      const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
+      setCountdown(`${h}:${m}:${s}`);
+    };
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div style={{
       position: "fixed", inset: 0, background: T.modalOverlay,
@@ -418,71 +509,88 @@ function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats }
       <div onClick={e => e.stopPropagation()} className="codex-modal-enter" style={{
         background: T.modalBg,
         borderRadius: 8,
-        padding: "32px 28px",
-        maxWidth: 340,
+        padding: "20px 24px 24px",
+        maxWidth: 380,
         width: "90%",
         textAlign: "center",
         boxShadow: T.modalShadow,
         position: "relative",
       }}>
-        {won ? (
-          <h3 style={{
-            fontSize: 20, fontWeight: 700, color: T.text, margin: "0 0 8px",
-            fontFamily: FONT,
-          }}>Nice work!</h3>
-        ) : (
-          <h3 style={{
-            fontSize: 20, fontWeight: 700, color: T.text, margin: "0 0 8px",
-            fontFamily: FONT,
-          }}>Better luck next time</h3>
-        )}
-        <p style={{ color: T.secondary, fontSize: 14, margin: "8px 0 4px", fontFamily: FONT }}>
+        <button onClick={onClose} style={{
+          position: "absolute", top: 16, right: 16,
+          background: "none", border: "none",
+          fontSize: 18, color: T.secondary, cursor: "pointer",
+          padding: 4, lineHeight: 1, fontFamily: FONT,
+        }}>{"\u2715"}</button>
+
+        <h3 style={{
+          fontSize: 16, fontWeight: 700, color: T.text, margin: "0 0 16px",
+          fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5,
+        }}>{won ? "You got it!" : "Better luck next time"}</h3>
+
+        <p style={{ color: T.secondary, fontSize: 14, margin: "0 0 4px", fontFamily: FONT }}>
           The word was
         </p>
         <p style={{
           fontSize: 32, fontWeight: 700,
-          color: won ? T.accent : T.text,
+          color: T.text,
           fontFamily: FONT,
-          letterSpacing: 4, margin: "0 0 20px",
+          letterSpacing: 4, margin: "0 0 16px",
         }}>{word}</p>
+
         {won && (
-          <p style={{ color: T.secondary, fontSize: 13, margin: "0 0 8px", fontFamily: FONT }}>
+          <p style={{ color: T.secondary, fontSize: 14, margin: "0 0 8px", fontFamily: FONT }}>
             {queriesUsed} / {MAX_QUERIES} reveals used
           </p>
         )}
+
         {stats && (
-          <div style={{ display: "flex", justifyContent: "center", gap: 24, margin: "0 0 20px" }}>
+          <div style={{ display: "flex", justifyContent: "center", gap: 32, margin: "0 0 16px" }}>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: T.text, fontFamily: FONT }}>{stats.streak}</div>
-              <div style={{ fontSize: 11, color: T.secondary, fontFamily: FONT }}>Streak</div>
+              <div style={{ fontSize: 36, fontWeight: 400, color: T.text, fontFamily: FONT }}>{stats.streak}</div>
+              <div style={{ fontSize: 11, color: T.text, fontFamily: FONT, whiteSpace: "pre-line" }}>{"Current\nStreak"}</div>
             </div>
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 20, fontWeight: 700, color: T.text, fontFamily: FONT }}>
+              <div style={{ fontSize: 36, fontWeight: 400, color: T.text, fontFamily: FONT }}>
                 {(stats.revealCounts || []).length > 0
                   ? ((stats.revealCounts || []).reduce((a, b) => a + b, 0) / (stats.revealCounts || []).length).toFixed(1)
-                  : "—"}
+                  : "\u2014"}
               </div>
-              <div style={{ fontSize: 11, color: T.secondary, fontFamily: FONT }}>Avg Reveals</div>
+              <div style={{ fontSize: 11, color: T.text, fontFamily: FONT, whiteSpace: "pre-line" }}>{"Avg\nReveals"}</div>
             </div>
           </div>
         )}
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onShare} style={{
-            flex: 1, padding: "14px",
-            background: T.accent,
-            border: "none", borderRadius: 4,
-            color: "#fff", fontSize: 14, fontWeight: 600,
-            cursor: "pointer",
-            fontFamily: FONT,
-          }}>{copied === "success" ? "Success!" : copied === "failed" ? "Failed" : "Share"}</button>
-          <button onClick={onClose} style={{
-            flex: 1, padding: "14px",
-            background: T.bg,
-            border: `1px solid ${T.border}`, borderRadius: 4,
-            color: T.text, fontSize: 14, fontWeight: 600,
-            cursor: "pointer",
-            fontFamily: FONT,
-          }}>Close</button>
+
+        <hr style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "16px 0" }} />
+
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <div style={{ flex: 1, textAlign: "center" }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: T.text, fontFamily: FONT, textTransform: "uppercase", letterSpacing: 0.5, marginBottom: 4 }}>
+              Next Bombe
+            </div>
+            <div style={{ fontSize: 32, fontWeight: 400, color: T.text, fontFamily: FONT, fontVariantNumeric: "tabular-nums" }}>
+              {countdown}
+            </div>
+          </div>
+          <div style={{ width: 1, height: 52, background: T.border, margin: "0 16px" }} />
+          <div style={{ flex: 1 }}>
+            <button onClick={onShare} style={{
+              width: "100%", padding: "16px",
+              background: T.accent,
+              border: "none", borderRadius: 4,
+              color: "#fff", fontSize: 16, fontWeight: 700,
+              cursor: "pointer",
+              fontFamily: FONT,
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+            }}>
+              {copied === "success" ? "Success!" : copied === "failed" ? "Failed" : "Share"}
+              {!copied && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/>
+                <polyline points="16 6 12 2 8 6"/>
+                <line x1="12" y1="2" x2="12" y2="15"/>
+              </svg>}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -560,7 +668,7 @@ export default function App() {
 
       .codex-tile-hover:hover {
         background: ${T.tileHoverBg} !important;
-        border-color: ${T.tileHoverBg} !important;
+        border-color: ${T.border} !important;
       }
 
       .codex-tile-hover:active {
@@ -644,9 +752,9 @@ export default function App() {
     const grid = [];
     for (let i = 0; i < 20; i++) {
       if (revealedPositions[i] !== undefined) {
-        grid.push("\uD83D\uDFE6"); // blue for revealed
+        grid.push("\uD83D\uDFE6");
       } else {
-        grid.push("\u2B1C"); // white for unrevealed
+        grid.push("\u2B1C");
       }
     }
     const rows = [];
@@ -698,7 +806,7 @@ export default function App() {
           let alphaIndex;
           if (key === "X" || key === "Y") alphaIndex = 23;
           else if (key >= "A" && key <= "W") alphaIndex = key.charCodeAt(0) - 65;
-          else alphaIndex = 24; // Z
+          else alphaIndex = 24;
           handleReveal(alphaIndex);
         }
       }
@@ -726,31 +834,36 @@ export default function App() {
       {/* Header */}
       <div style={{
         width: "100%", maxWidth: 800,
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        padding: "20px 20px 16px",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        padding: "14px 20px",
+        borderBottom: `1px solid ${T.border}`,
+        position: "relative",
       }}>
         <div style={{
-          fontSize: 28, fontWeight: 600, letterSpacing: -0.5,
+          fontSize: 32, fontWeight: 700, letterSpacing: 1,
           color: T.text,
           fontFamily: FONT,
         }}>Bombe</div>
 
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ position: "absolute", right: 20, display: "flex", gap: 4, alignItems: "center" }}>
           <button onClick={() => setShowHelp(true)} style={{
-            background: "none", border: "none",
-            color: T.secondary, fontSize: 20, cursor: "pointer", padding: 4,
-            fontFamily: FONT, fontWeight: 400,
+            background: "none", border: `1.5px solid ${T.text}`,
+            borderRadius: "50%",
+            width: 24, height: 24,
+            color: T.text, fontSize: 13, cursor: "pointer",
+            fontFamily: FONT, fontWeight: 700,
             display: "flex", alignItems: "center", justifyContent: "center",
+            padding: 0,
           }}>?</button>
           <button onClick={() => setShowStats(true)} style={{
             background: "none", border: "none",
-            color: T.secondary, cursor: "pointer", padding: 4,
+            color: T.text, cursor: "pointer", padding: 4,
             display: "flex", alignItems: "center", justifyContent: "center",
           }}>
-            <svg width="18" height="18" viewBox="0 0 16 16" fill="none">
-              <rect x="1" y="9" width="3" height="6" rx="0.5" fill={T.secondary}/>
-              <rect x="6" y="5" width="3" height="10" rx="0.5" fill={T.secondary}/>
-              <rect x="11" y="1" width="3" height="14" rx="0.5" fill={T.secondary}/>
+            <svg width="20" height="20" viewBox="0 0 18 18" fill="none">
+              <rect x="1" y="10" width="3.5" height="7" rx="0.5" fill={T.text}/>
+              <rect x="7" y="5" width="3.5" height="12" rx="0.5" fill={T.text}/>
+              <rect x="13" y="1" width="3.5" height="16" rx="0.5" fill={T.text}/>
             </svg>
           </button>
         </div>
@@ -758,9 +871,9 @@ export default function App() {
 
       {/* Reveals counter */}
       <div style={{
-        width: "100%", maxWidth: 800, padding: "0 20px",
+        width: "100%", maxWidth: 800, padding: "12px 20px",
         display: "flex", alignItems: "center", justifyContent: "center",
-        gap: 12, paddingBottom: 12,
+        gap: 12,
       }}>
         <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
           {Array.from({ length: MAX_QUERIES }).map((_, i) => (
@@ -782,10 +895,10 @@ export default function App() {
 
       {/* Tile grid - 5x4 grid */}
       <div style={{
-        width: "100%", maxWidth: 800, padding: "12px 16px",
+        width: "100%", maxWidth: 800, padding: "4px 16px",
         display: "grid",
         gridTemplateColumns: "repeat(5, 1fr)",
-        gap: 8,
+        gap: 6,
       }}>
         {shiftedGrid.map((letter, i) => {
           const isRevealed = revealedPositions[i] !== undefined;
@@ -796,7 +909,6 @@ export default function App() {
               isRevealed={isRevealed}
               onClick={() => handleReveal(i)}
               disabled={gameOver || isRevealed || queriesUsed >= MAX_QUERIES}
-              index={i}
             />
           );
         })}
@@ -821,7 +933,7 @@ export default function App() {
                 flex: 1, padding: "14px 16px",
                 background: wrongGuess ? T.errorBg : "#fff",
                 border: wrongGuess ? `2px solid ${T.error}` : `2px solid ${T.border}`,
-                borderRadius: 8, color: T.text,
+                borderRadius: 4, color: T.text,
                 fontSize: 22, fontWeight: 700,
                 letterSpacing: 8, textAlign: "center",
                 fontFamily: FONT,
@@ -835,7 +947,7 @@ export default function App() {
               flex: 1, padding: "14px",
               background: guess.length === 5 ? T.accent : T.disabledBtn,
               border: "none",
-              borderRadius: 8,
+              borderRadius: 4,
               color: guess.length === 5 ? "#fff" : T.disabledBtnText,
               fontSize: 15, fontWeight: 600,
               cursor: guess.length === 5 ? "pointer" : "default",
@@ -845,7 +957,7 @@ export default function App() {
             <button onClick={handleGiveUp} style={{
               padding: "14px 20px",
               background: "none",
-              border: `1px solid ${T.border}`, borderRadius: 8,
+              border: `1px solid ${T.border}`, borderRadius: 4,
               color: T.secondary, fontSize: 15, fontWeight: 600,
               cursor: "pointer", fontFamily: FONT,
             }}>Give up</button>
@@ -868,7 +980,7 @@ export default function App() {
               flex: 1, padding: "14px",
               background: "none",
               border: `1px solid ${T.border}`,
-              borderRadius: 8,
+              borderRadius: 4,
               color: T.secondary,
               fontSize: 15, fontWeight: 600,
               cursor: "pointer", transition: "all 0.2s",
@@ -887,8 +999,8 @@ export default function App() {
           display: "flex", flexDirection: "column", alignItems: "center", gap: 16,
         }}>
           <div style={{
-            fontSize: 36, fontWeight: 800,
-            color: won ? T.accent : T.text,
+            fontSize: 36, fontWeight: 700,
+            color: T.text,
             letterSpacing: 4,
             fontFamily: FONT,
           }}>
@@ -897,14 +1009,14 @@ export default function App() {
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={handleShare} style={{
               padding: "12px 28px", background: T.accent,
-              border: "none", borderRadius: 8,
+              border: "none", borderRadius: 4,
               color: "#fff", fontSize: 15, fontWeight: 600,
               cursor: "pointer",
               fontFamily: FONT,
             }}>{copied === "success" ? "Success!" : copied === "failed" ? "Failed" : "Share"}</button>
             <button onClick={() => setShowResult(true)} style={{
               padding: "12px 28px", background: "none",
-              border: `1px solid ${T.border}`, borderRadius: 8,
+              border: `1px solid ${T.border}`, borderRadius: 4,
               color: T.secondary, fontSize: 15, fontWeight: 600,
               cursor: "pointer",
               fontFamily: FONT,
