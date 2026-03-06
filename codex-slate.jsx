@@ -212,7 +212,7 @@ function getEasternDateString() {
 function getDailyWord() {
   const { year, month, day } = getEasternDate();
   const seed = year * 10000 + month * 100 + day;
-  return WORD_LIST[(seed * 13 + 7) % WORD_LIST.length];
+  return WORD_LIST[(seed * 17 + 11) % WORD_LIST.length];
 }
 
 function getDayNumber() {
