@@ -192,23 +192,43 @@ const T = {
   tileHoverBg: "#ededed",
 };
 
-// --- Daily word helpers (all UTC so everyone gets the same word) ---
-function getUTCDateString() {
-  const now = new Date();
-  return `${now.getUTCFullYear()}-${now.getUTCMonth() + 1}-${now.getUTCDate()}`;
+// --- Daily word helpers (Eastern Time — resets at midnight ET for everyone) ---
+function getEasternDate() {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/New_York",
+    year: "numeric", month: "numeric", day: "numeric",
+  }).formatToParts(new Date());
+  const y = +parts.find(p => p.type === "year").value;
+  const m = +parts.find(p => p.type === "month").value;
+  const d = +parts.find(p => p.type === "day").value;
+  return { year: y, month: m, day: d };
+}
+
+function getEasternDateString() {
+  const { year, month, day } = getEasternDate();
+  return `${year}-${month}-${day}`;
 }
 
 function getDailyWord() {
-  const now = new Date();
-  const seed = now.getUTCFullYear() * 10000 + (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
+  const { year, month, day } = getEasternDate();
+  const seed = year * 10000 + month * 100 + day;
   return WORD_LIST[(seed * 7 + 3) % WORD_LIST.length];
 }
 
 function getDayNumber() {
-  const now = new Date();
-  const start = Date.UTC(2026, 2, 6); // March 6 2026 UTC
-  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const { year, month, day } = getEasternDate();
+  const start = Date.UTC(2026, 2, 6); // March 6 2026
+  const today = Date.UTC(year, month - 1, day);
   return Math.floor((today - start) / 86400000) + 1;
+}
+
+function getMsUntilEasternMidnight() {
+  const now = new Date();
+  const etNow = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+  const midnight = new Date(etNow);
+  midnight.setDate(midnight.getDate() + 1);
+  midnight.setHours(0, 0, 0, 0);
+  return midnight - etNow;
 }
 
 // --- Stats helpers (localStorage for persistence across refreshes) ---
@@ -231,7 +251,7 @@ function loadDailyState() {
     const raw = localStorage.getItem("bombe_daily");
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (parsed && parsed.date === getUTCDateString()) return parsed;
+      if (parsed && parsed.date === getEasternDateString()) return parsed;
     }
   } catch {}
   return null;
@@ -239,7 +259,7 @@ function loadDailyState() {
 
 function saveDailyState(state) {
   try {
-    localStorage.setItem("bombe_daily", JSON.stringify({ ...state, date: getUTCDateString() }));
+    localStorage.setItem("bombe_daily", JSON.stringify({ ...state, date: getEasternDateString() }));
   } catch {}
 }
 
@@ -307,9 +327,7 @@ function StatsModal({ stats, onClose }) {
   const [countdown, setCountdown] = useState("");
   useEffect(() => {
     const tick = () => {
-      const now = new Date();
-      const tomorrow = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
-      const diff = tomorrow - now;
+      const diff = getMsUntilEasternMidnight();
       const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
       const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
       const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
@@ -492,9 +510,7 @@ function ResultModal({ won, word, queriesUsed, onShare, onClose, copied, stats }
   const [countdown, setCountdown] = useState("");
   useEffect(() => {
     const tick = () => {
-      const now = new Date();
-      const tomorrow = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
-      const diff = tomorrow - now;
+      const diff = getMsUntilEasternMidnight();
       const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
       const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
       const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
