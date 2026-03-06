@@ -963,6 +963,23 @@ export default function App() {
     };
   }, []);
 
+  // Auto-reload when the daily puzzle changes (midnight ET)
+  useEffect(() => {
+    const dateAtMount = getEasternDateString();
+    const check = () => {
+      if (getEasternDateString() !== dateAtMount) {
+        window.location.reload();
+      }
+    };
+    // Poll every 5s + check on tab re-focus
+    const interval = setInterval(check, 5000);
+    document.addEventListener("visibilitychange", check);
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", check);
+    };
+  }, []);
+
   // Save state on changes
   useEffect(() => {
     saveDailyState({ revealedPositions, queriesUsed, gameOver, won });
